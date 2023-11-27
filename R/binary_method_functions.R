@@ -53,21 +53,6 @@ gen_multi_bin <-
       colMeans(na.rm = TRUE) |>
       (\(x) 1 - x)()
 
-    # # Determine the majority classification. A small random number is added to each in order to break ties in cases with an even number of tests.
-    # D_majority <- generated_data |>
-    #   rowMeans(na.rm = TRUE) |>
-    #   (\(x) x + runif(n_obs, -0.000001, 0.000001))() |>
-    #   round()
-
-    # # Estimate pi wrt majority classification
-    # prev_majority <- mean(D_majority, na.rm = TRUE)
-    #
-    # # Estimate individual test se wrt majority classification
-    # se_majority <- generated_data[D_majority == 1, ] |> colMeans(na.rm = TRUE)
-    #
-    # # Estimate individual test sp wrt majority classification
-    # sp_majority <- 1 - generated_data[D_majority == 0, ] |> colMeans(na.rm = TRUE)
-
     return(
       list(
         generated_data = generated_data,
