@@ -16,7 +16,7 @@ gen_multi_bin <-
     # "*_majority" - calculated using observed values with the majority class as the reference
     # "*_observed" - calculated using observed values with the "True" value as the reference
 
-    if(is.null(method_names)){method_names <- thing_namer("method", n_method)}
+    if(is.null(method_names)){method_names <- name_thing("method", n_method)}
 
     pos <- round(n_obs * prev, 0)
     neg <- n_obs - pos
@@ -53,11 +53,11 @@ gen_multi_bin <-
       colMeans(na.rm = TRUE) |>
       (\(x) 1 - x)()
 
-    # Determine the majority classification. A small random number is added to each in order to break ties in cases with an even number of tests.
-    D_majority <- generated_data |>
-      rowMeans(na.rm = TRUE) |>
-      (\(x) x + runif(n_obs, -0.000001, 0.000001))() |>
-      round()
+    # # Determine the majority classification. A small random number is added to each in order to break ties in cases with an even number of tests.
+    # D_majority <- generated_data |>
+    #   rowMeans(na.rm = TRUE) |>
+    #   (\(x) x + runif(n_obs, -0.000001, 0.000001))() |>
+    #   round()
 
     # # Estimate pi wrt majority classification
     # prev_majority <- mean(D_majority, na.rm = TRUE)
@@ -86,7 +86,7 @@ gen_multi_bin <-
 
 pollinate_EM_binary <- function(data){
 
-  method_names <- if(is.null(names(data))){thing_namer("method", ncol(data))}else{names(data)}
+  method_names <- if(is.null(names(data))){name_thing("method", ncol(data))}else{names(data)}
 
   n_obs <- nrow(data)
 
@@ -167,11 +167,11 @@ calc_next_prev <- function(data, qk_m){
 
 }
 
-EM_estimator_binary <- function(data, init = list(prev_1 = NULL, se_1 = NULL, sp_1 = NULL), n_iter = 100, tol = 1e-7){
+estimate_EM_binary <- function(data, init = list(prev_1 = NULL, se_1 = NULL, sp_1 = NULL), n_iter = 100, tol = 1e-7){
 
   if(any(sapply(init, is.null))){init <- pollinate_EM_binary(data)}
 
-  method_names <- if(is.null(names(data))){thing_namer("method", ncol(data))}else{names(data)}
+  method_names <- if(is.null(names(data))){name_thing("method", ncol(data))}else{names(data)}
 
   # starting values
   se_m <- init$se_1
