@@ -18,14 +18,15 @@ gen_multi_bin <-
 
     if(is.null(method_names)){method_names <- name_thing("method", n_method)}
 
-    pos <- round(n_obs * prev, 0)
-    neg <- n_obs - pos
+    dis <- define_disease_state(D, n_obs, prev)
 
-    if(is.null(D)){D <- c(rep(1, pos), rep(0, neg))}
+    # pos <- round(n_obs * prev, 0)
+    # neg <- n_obs - pos
+    # if(is.null(D)){D <- c(rep(1, pos), rep(0, neg))}
 
     # Create dataframe to (optionally) randomly censor observations such that only "n_method_subset" results are reported for each observation
     subset_matrix <-
-      lapply(1:n_obs, function(i)
+      lapply(1:dis$n_obs, function(i)
         if(!first_reads_all){sample(c(rep(1, n_method_subset), rep(NA, n_method - n_method_subset)), n_method, replace = FALSE)
         }else{
           c(1, sample(c(rep(1, n_method_subset - 1), rep(NA, n_method - n_method_subset)), n_method - 1, replace = FALSE))
@@ -35,20 +36,20 @@ gen_multi_bin <-
 
     # Build simulated data set based on input criteria
     generated_data <-
-      lapply(1:n_method, function(i) rbinom(n_obs, 1, se[i] * D + (1 - sp[i]) * (1 - D))) |>
+      lapply(1:n_method, function(i) rbinom(dis$n_obs, 1, se[i] * dis$D + (1 - sp[i]) * (1 - dis$D))) |>
       do.call(what = cbind, args = _) * subset_matrix |>
       as.data.frame() |>
       setNames(method_names)
 
     # Calculate individual test se based on input criteria. This will differ slightly from "se" due to random sampling.
     se_observed <-
-      cbind(generated_data, D = D) |>
+      cbind(generated_data, D = dis$D) |>
       subset(D == 1, select = -D) |>
       colMeans(na.rm = TRUE)
 
     # Calculate individual test sp based on input criteria. This will differ slightly from "sp" due to random sampling.
     sp_observed <-
-      cbind(generated_data, D = D) |>
+      cbind(generated_data, D = dis$D) |>
       subset(D == 0, select = -D) |>
       colMeans(na.rm = TRUE) |>
       (\(x) 1 - x)()
@@ -57,11 +58,11 @@ gen_multi_bin <-
       list(
         generated_data = generated_data,
         n_method = n_method,
-        n_obs = n_obs,
-        prev = prev,
+        n_obs = dis$n_obs,
+        prev = dis$prev,
         se = se,
         sp = sp,
-        D = D,
+        D = dis$D,
         method_names = method_names,
         se_observed = se_observed,
         sp_observed = sp_observed
