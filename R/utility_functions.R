@@ -35,3 +35,18 @@ define_disease_state <-
     )
 
   }
+
+generate_multimethod_data <-
+  function(n_method = 3,
+           n_obs = 100,
+           prev = 0.5,
+           D = NULL,
+           type = NULL,
+           ...){
+    arguments <- list(...)
+    switch (type,
+            binary = gen_multi_bin(n_method, n_obs, prev, D, ...),
+            ordinal = gen_multi_ord(n_method, n_obs, prev, D, ...),
+            continuous = gen_multi_con(n_method, n_obs, prev, D, ...)
+    )
+  }

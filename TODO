@@ -1,0 +1,14 @@
+To Do:
+ - Initial value warning
+ - Plot functions
+ - Summary functions
+ - S4?
+x - Standardize output
+ - Generalize ord and cont to include NA
+ - Comment
+ - Vignette
+ - Citation
+ - Documentation
+x - Observation names
+ - Bootstrap function(s)
+x - Verbose arg?

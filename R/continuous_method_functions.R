@@ -4,10 +4,9 @@
 # j response
 # k observations
 
-
 ### Build Sample Data Set
 
-#' Title
+#' Generate data set for multiple continuous methods measuring the same binary variable
 #'
 #' @param n_method number of methods to generate simulated data for
 #' @param n_obs number of observations to simulate
@@ -17,12 +16,11 @@
 #' @param sigma_i1 covariance matrix of method positive observations
 #' @param mu_i0 vector of method mean values for negative observations
 #' @param sigma_i0 covariance matrix of method negative observations
-#' @param method_names vector of names of each method
+#' @param obs_names vector of names of each observation
 #'
 #' @return list containing generated data and input parameters
 #' @export
 #' @importFrom mvtnorm rmvnorm
-#' @examples
 #'
 
 gen_multi_con <-
@@ -35,117 +33,49 @@ gen_multi_con <-
     sigma_i1 = diag(n_method),
     mu_i0 = rep(10, n_method),
     sigma_i0 = diag(n_method),
-    method_names = NULL
+    method_names = NULL,
+    obs_names = NULL
     ){
 
-  pos <- round(n_obs * prev, 0)
-  neg <- n_obs - pos
+  dis <- define_disease_state(D, n_obs, prev)
 
-  X <- mvtnorm::rmvnorm(n = pos, mean = mu_i1, sigma = sigma_i1)
-  Y <- mvtnorm::rmvnorm(n = neg, mean = mu_i0, sigma = sigma_i0)
+  X <- mvtnorm::rmvnorm(n = dis$pos, mean = mu_i1, sigma = sigma_i1)
+  Y <- mvtnorm::rmvnorm(n = dis$neg, mean = mu_i0, sigma = sigma_i0)
 
   generated_data <- rbind(X, Y)
 
-  D <- c(rep(1, pos), rep(0, neg))
+  params <-
+    list(
+      n_method = n_method,
+      n_obs = dis$n_obs,
+      prev = dis$prev,
+      D = dis$D,
+      mu_i1 = mu_i1,
+      sigma_i1 = sigma_i1,
+      mu_i0 = mu_i0,
+      sigma_i0 = sigma_i0,
+      method_names = method_names,
+      obs_names = obs_names
+    )
 
   return(
     list(generated_data = generated_data,
-         n_method = n_method,
-         n_obs = n_obs,
-         D = D,
-         mu_i1 = mu_i1,
-         sigma_i1 = sigma_i1,
-         mu_i0 = mu_i0,
-         sigma_i0 = sigma_i0,
-         method_names = method_names
+         params = params
          )
   )
 }
 
-### Internal Functions
-
-calc_l_cond_continuous <- function(prev_m, z_k1_m, z_k0_m, f_X_m, f_Y_m){
-
-  sum(
-    (z_k1_m *
-       log((prev_m) * #paper is inconsistent on whether to use log p or log of product
-             pmax(f_X_m, 1e-300))) + #small minimum value, algorithm fails is this reaches 0
-      (z_k0_m *
-         log((1 - prev_m) * #paper is inconsistent on whether to use log p or log of product
-               pmax(f_Y_m, 1e-300))) #small minimum value, algorithm fails is this reaches 0
-  )
-
-}
-
-calc_z_kd <- function(prev_m, f_X_m, f_Y_m, D){
-
-  #combined numerators into single function. D determines which part is used.
-  ((prev_m * f_X_m) * D + ((1 - prev_m) * f_Y_m) * (1 - D)) /
-    ((prev_m * f_X_m) + ((1 - prev_m) * f_Y_m))
-
-}
-
-calc_next_prev <- function(z_k1_m){
-
-  mean(z_k1_m)
-
-}
-
-calc_next_mu_id <- function(t_k, z_kd_m){
-
-  #returns vector of mu_id(m+1) estimates
-
-  colSums((z_kd_m * t_k)) /
-    sum(z_kd_m)
-
-}
-
-calc_next_sigma_d <- function(prev_m, t_k, z_kd, mu_id){
-
-  # returns covariance matrix sigma_d(m+1) estimate
-
-  n_method <- length(mu_id)
-  sigma_d <- matrix(nrow = n_method, ncol = n_method)
-
-  for(i in 1:n_method){
-
-    for(j in 1:i){
-
-      sigma_d[i, j] <-
-        sum(z_kd * (t_k[, i] - mu_id[i]) * (t_k[, j] - mu_id[j])) /
-        sum(z_kd)
-
-      sigma_d[j, i] <- sigma_d[i, j]
-
-    }
-
-  }
-  return(sigma_d)
-}
-
-eta_j <- function(mu_i1, sigma_i1, mu_i0, sigma_i0){
-
-  (mu_i1 - mu_i0) / sqrt(diag(sigma_i1) + diag(sigma_i0))
-
-}
-
-A_j <- function(eta){
-
-  test_names <- if(is.null(names(eta))){paste0("test_", 1:length(eta))}else{names(eta)}
-  data.frame(test = test_names, A_hat = pnorm(eta))
-
-}
-
-#' Title
+#' EM for continuous methods
 #'
 #' @param data A matrix with observations as rows and methods as columns.
-#' @param init A named list of initial values for prevalence, location, and dispresion of disease groups.
-#' @param iter An integer specifying the maximum number of iterations
+#' @param max_iter Maximum number of iterations to stop seeking convergence of l estimate.
+#' @param tol Change in l below which l is said to converge.
+#' @param save_progress Logical value denoting whether to output the calculated values of each iteration.
+#' @param init A named list of initial values for prevalence, location, and dispersion of disease groups.
 #'
-#' @return
+#' @return A list containing the final calculated values.
 #' @export
 #'
-#' @examples
 estimate_EM_continuous <-
   function(data,
            init = list(
@@ -154,11 +84,59 @@ estimate_EM_continuous <-
              sigma_i1_1 = NULL,
              mu_i0_1 = NULL,
              sigma_i0_1 = NULL),
-           iter = 100){
+           max_iter = 100,
+           tol = 1e-7,
+           save_progress = FALSE){
 
-  if(any(sapply(init, is.null))){init <- pollinate_EM_continuous(data)}
+  calc_l_cond_continuous <- function(){
+      sum(
+        (z_k1_m *
+           log((prev_m) * #paper is inconsistent on whether to use log p or log of product
+                 pmax(f_X_m, 1e-300))) + #small minimum value, algorithm fails is this reaches 0
+          (z_k0_m *
+             log((1 - prev_m) * #paper is inconsistent on whether to use log p or log of product
+                   pmax(f_Y_m, 1e-300))) #small minimum value, algorithm fails is this reaches 0
+      )
+    }
+  calc_z_kd <- function(d){
+      #combined numerators into single function. d determines which part is used.
+      ((prev_m * f_X_m) * d + ((1 - prev_m) * f_Y_m) * (1 - d)) /
+        ((prev_m * f_X_m) + ((1 - prev_m) * f_Y_m))
+    }
+  calc_next_prev <- function(){
+      mean(z_k1_m)
+    }
+  calc_next_mu_id <- function(z_kd_m){
+      #returns vector of mu_id(m+1) estimates
+      colSums((z_kd_m * t_k)) /
+        sum(z_kd_m)
+    }
+  calc_next_sigma_d <- function(z_kd_m, mu_id_m){
+      # returns covariance matrix sigma_d(m+1) estimate
+      n_method <- length(mu_id_m)
+      sigma_d <- matrix(nrow = n_method, ncol = n_method)
+      for(i in 1:n_method){
+        for(j in 1:i){
+          sigma_d[i, j] <-
+            sum(z_kd_m * (t_k[, i] - mu_id_m[i]) * (t_k[, j] - mu_id_m[j])) /
+            sum(z_kd_m)
+          sigma_d[j, i] <- sigma_d[i, j]
+        }
+      }
+      return(sigma_d)
+    }
+  calc_eta_j <- function(){
+    (mu_i1_m - mu_i0_m) / sqrt(diag(sigma_i1_m) + diag(sigma_i0_m))
+  }
+  calc_A_j <- function(){
+    setNames(pnorm(eta_j_m), method_names)
+  }
 
   t_k <- data
+  n_method <- ncol(t_k)
+  method_names <- if(is.null(colnames(t_k))){name_thing("method", n_method)}else{colnames(t_k)}
+
+  if(any(sapply(init, is.null))){init <- pollinate_EM_continuous(t_k)}
   prev_m <- init$prev_1
   mu_i1_m <- init$mu_i1_1
   sigma_i1_m <- init$sigma_i1_1
@@ -171,54 +149,96 @@ estimate_EM_continuous <-
   list_mu_i0 <- list()
   list_sigma_i0 <- list()
 
+  list_eta_j <- list()
+  list_A_j <- list()
   list_z_k1 <- list()
   list_z_k0 <- list()
   list_l_cond <- list()
 
-  for(j in 1:iter){
+  for(iter in 1:max_iter){
 
     f_X_m <- mvtnorm::dmvnorm(t_k, mean = mu_i1_m, sigma = sigma_i1_m)
     f_Y_m <- mvtnorm::dmvnorm(t_k, mean = mu_i0_m, sigma = sigma_i0_m)
 
-    z_k1_m <- calc_z_kd(prev_m, f_X_m, f_Y_m, D = 1)
-    z_k0_m <- calc_z_kd(prev_m, f_X_m, f_Y_m, D = 0)
+    eta_j_m <- calc_eta_j()
+    A_j_m <- calc_A_j()
+    z_k1_m <- calc_z_kd(d = 1)
+    z_k0_m <- calc_z_kd(d = 0)
+    l_cond_m <- calc_l_cond_continuous()
 
-    l_cond_m <- calc_l_cond_continuous(prev_m, z_k1_m, z_k0_m, f_X_m, f_Y_m)
-    list_prev[[j]] <- prev_m
-    list_mu_i1[[j]] <- mu_i1_m
-    list_sigma_i1[[j]] <- sigma_i1_m
-    list_mu_i0[[j]] <- mu_i0_m
-    list_sigma_i0[[j]] <- sigma_i0_m
+    list_prev <- c(list_prev, list(prev_m))
+    list_mu_i1 <- c(list_mu_i1, list(mu_i1_m))
+    list_sigma_i1 <- c(list_sigma_i1, list(sigma_i1_m))
+    list_mu_i0 <- c(list_mu_i0, list(mu_i0_m))
+    list_sigma_i0 <- c(list_sigma_i0, list(sigma_i0_m))
+    list_eta_j <- c(list_eta_j, list(eta_j_m))
+    list_A_j <- c(list_A_j, list(A_j_m))
+    list_z_k1 <- c(list_z_k1, list(z_k1_m))
+    list_z_k0 <- c(list_z_k0, list(z_k0_m))
+    list_l_cond <- c(list_l_cond, list(l_cond_m))
 
-    list_z_k1[[j]] <- z_k1_m
-    list_z_k0[[j]] <- z_k0_m
-    list_l_cond[[j]] <- l_cond_m
+    if(iter > 1){if(abs(list_l_cond[[iter]] - list_l_cond[[iter - 1]]) < tol){break}}
 
-    if(j > 1){if(abs(list_l_cond[[j]] - list_l_cond[[j - 1]]) < .000001){break}}
-
-    prev_m <- calc_next_prev(z_k1_m)
-    mu_i1_m <- calc_next_mu_id(t_k, z_k1_m)
-    sigma_i1_m <- calc_next_sigma_d(prev_m, t_k, z_k1_m, mu_i1_m)
-    mu_i0_m <- calc_next_mu_id(t_k, z_k0_m)
-    sigma_i0_m <- calc_next_sigma_d(prev_m, t_k, z_k0_m, mu_i0_m)
+    prev_m <- calc_next_prev()
+    mu_i1_m <- calc_next_mu_id(z_k1_m)
+    sigma_i1_m <- calc_next_sigma_d(z_k1_m, mu_i1_m)
+    mu_i0_m <- calc_next_mu_id(z_k0_m)
+    sigma_i0_m <- calc_next_sigma_d(z_k0_m, mu_i0_m)
 
   }
 
-  list(list_prev = list_prev,
-       list_mu_i1 = list_mu_i1,
-       list_sigma_i1 = list_sigma_i1,
-       list_mu_i0 = list_mu_i0,
-       list_sigma_i0 = list_sigma_i0,
-       list_l_cond = list_l_cond,
-       list_calc_z_k1 = list_z_k1,
-       list_calc_z_k0 = list_z_k0,
-       iter = j)
+  output <-
+    new("MultiMethodMLEstimate",
+        results = list(
+          prev_est = prev_m,
+          mu_i1_est = mu_i1_m,
+          sigma_i1_est = sigma_i1_m,
+          mu_i0_est = mu_i0_m,
+          sigma_i0_est = sigma_i0_m,
+          eta_j_est = eta_j_m,
+          A_j_est = A_j_m,
+          z_k1_est = z_k1_m,
+          z_k0_est = z_k0_m),
+        iter = iter,
+        type = "continuous")
 
-}
+  if(save_progress){
+    output@prog <-
+      list(
+        prev = list_prev,
+        mu_i1 = list_mu_i1,
+        sigma_i1 = list_sigma_i1,
+        mu_i0 = list_mu_i0,
+        sigma_i0 = list_sigma_i0,
+        eta_j = list_eta_j,
+        A_j = list_A_j,
+        z_k1 = list_z_k1,
+        z_k0 = list_z_k0,
+        l_cond = list_l_cond)
+  }
+
+  return(output)
+
+  }
 
 ### Starting Value Generator
 
-pollinate_EM_continuous <- function(t_k, prev = 0.5, q_seeds = c((1 - prev) / 2, 1 - (prev / 2)), high_pos = TRUE){
+#' Create initialization values for EM estimation
+#'
+#' @param t_k A data set of `n_obs` rows and `n_method` columns
+#' @param prev A double between 0-1 representing the proportion of positives in the population
+#' @param q_seeds A vector of length 2 representing the quantiles at which the two groups are assumed to be centered
+#' @param high_pos A logical indicating whether larger values are considered "positive"
+#'
+#' @return
+#' @export
+#'
+#' @examples
+pollinate_EM_continuous <-
+  function(t_k,
+           prev = 0.5,
+           q_seeds = c((1 - prev) / 2, 1 - (prev / 2)),
+           high_pos = TRUE){
 
   # adjust seeds depending on whether high (default) or low values are associated with "positive" diagnosis
   q_seeds <- sort(q_seeds, decreasing = high_pos)
@@ -231,6 +251,16 @@ pollinate_EM_continuous <- function(t_k, prev = 0.5, q_seeds = c((1 - prev) / 2,
   sigma_i1_1 <- diag(mu_i1_1 ^ 2)
   sigma_i0_1 <- diag(mu_i0_1 ^ 2)
 
-  list(prev_1 = prev, mu_i1_1 = mu_i1_1, sigma_i1_1 = sigma_i1_1, mu_i0_1 = mu_i0_1, sigma_i0_1 = sigma_i0_1)
+  return(
+    list(
+      prev_1 = prev,
+      mu_i1_1 = mu_i1_1,
+      sigma_i1_1 = sigma_i1_1,
+      mu_i0_1 = mu_i0_1,
+      sigma_i0_1 = sigma_i0_1)
+  )
 
 }
+
+# a <- generate_multimethod_data(n_method = 3, type = "continuous")
+# b <- estimate_EM_continuous(a$generated_data, save_progress = TRUE)
