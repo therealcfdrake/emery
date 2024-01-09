@@ -1,6 +1,15 @@
-## Binary
+#' Generate data for multiple binary measurement methods
+#'
+#' @inheritParams generate_multimethod_data
+#' @param se,sp Used for binary methods. A vector of length n_method of values between 0-1 representing the sensitivity and specificity of the methods
+#' @param n_method_subset Used for binary methods. An integer defining how many methods to select at random to produce a result for each observation
+#' @param first_reads_all Used for binary methods. A logical which forces method 1 to have a result for every observation
+#'
+#' @return A list containing the simulated data set and the parameters used to generate it
+#' @export
+#'
 
-gen_multi_bin <-
+generate_multimethod_binary <-
   function(n_method = 3,
            n_obs = 100,
            prev = 0.5,
@@ -77,12 +86,21 @@ gen_multi_bin <-
     )
   }
 
+#' Estimate accuracy statistics and prevalence by ML
+#'
+#' @inheritParams estimate_ML
+#'
+#' @return A list of statistics resulting from the application of the EM algorithm. If save_progress is TRUE, a list of each value needed by the algorithm for each iteration will also be included.
+#' @export
+#'
+#' @examples
+
 estimate_ML_binary <-
   function(data,
            init = list(prev_1 = NULL, se_1 = NULL, sp_1 = NULL),
            max_iter = 100,
            tol = 1e-7,
-           save_progress = FALSE){
+           save_progress = TRUE){
 
   calc_A2 <- function(){
       data |>
@@ -202,6 +220,12 @@ estimate_ML_binary <-
 
 }
 
+#' Generate starting values for EM algorithm
+#'
+#' @param data A matrix with n_obs rows and n_method columns
+#'
+#' @return A named list containing the seed values for the EM algorithm
+#'
 pollinate_ML_binary <-
   function(data){
 
@@ -231,12 +255,12 @@ pollinate_ML_binary <-
 
 }
 
-#' Title
+#' Generate plots from MultiMethodEstimate class objects
 #'
-#' @param ML_est
-#' @param plots
+#' @param ML_est A MultiMethodEstimate class object
+#' @param params A named list of population parameters, i.e. the "correct" values. This is used when the data are simulated and/or when the true values of the results statistics are known.
 #'
-#' @return A list of plots.
+#' @return A list of plots
 #' @export
 #' @import ggplot2
 #' @import dplyr
@@ -255,6 +279,9 @@ plot_ML_binary <-
   prog_plots <- c("prev", "se", "sp", "A2", "B2", "qk")
 
   n_method <- length(ML_est@results$se_est)
+
+
+  ### Se/Sp scatter plot
     se_sp_data <-
       left_join(
         as.data.frame(ML_est@prog$se) %>% mutate(iter = row_number()) %>% pivot_longer(!iter, names_to = "method", values_to = "se"),
@@ -262,12 +289,11 @@ plot_ML_binary <-
         by = join_by(iter, method)
       )
 
-    ### Se/Sp scatter plot
     se_sp_result <-
       data.frame(
         method = rep(colnames(ML_est@results$se_est), 2),
-        se = c(ML_est@results$se_est, params$se),
-        sp = c(ML_est@results$sp_est, params$sp),
+        se = c(ML_est@results$se_est, params$se), #fix
+        sp = c(ML_est@results$sp_est, params$sp), #fix
         shape = c(
           rep("final", n_method),
           rep("param", n_method)
@@ -326,12 +352,3 @@ plot_ML_binary <-
 
   }
 
-plot_ML_binary_results()
-
-a <- generate_multimethod_data(5, 100, 0.2, type = "binary", se = runif(5, 0.7, 0.9), sp = runif(5, 0.7, 0.9))
-b <- estimate_ML_binary(a$generated_data, save_progress = TRUE)
-# plot_ML_binary(b, plots = "all")
-left_join(
-  as.data.frame(b@prog$se) %>% mutate(iter = row_number()) %>% pivot_longer(!iter, names_to = "method", values_to = "se"),
-  as.data.frame(b@prog$sp) %>% mutate(iter = row_number()) %>% pivot_longer(!iter, names_to = "method", values_to = "sp")
-)

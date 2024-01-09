@@ -1,4 +1,15 @@
-gen_multi_ord <-
+#' Generate data for multiple ordinal measurement methods
+#'
+#' @inheritParams generate_multimethod_data
+#' @param n_level Used for ordinal methods. An integer representing the number of ordinal levels each method has
+#' @param pmf_pos,pmf_neg Used for ordinal methods. A n_method by n_level matrix representing the probability mass functions for positive and negative results, respectively
+#' @param level_names Used for ordinal methods. Optional vector of names used to identify each level
+#'
+#' @return
+#' @export
+#'
+#' @examples
+generate_multimethod_ordinal <-
   function(n_method = 3,
            n_obs = 100,
            prev = 0.5,
@@ -73,13 +84,22 @@ gen_multi_ord <-
 
   }
 
-estimate_EM_ordinal <-
+#' Estimate accuracy statistics and prevalence by ML
+#'
+#' @inheritParams estimate_ML
+#' @param level_names
+#'
+#' @return
+#' @export
+#'
+#' @examples
+estimate_ML_ordinal <-
   function(data,
            init = list(pi_1_1 = NULL, phi_1ij_1 = NULL, phi_0ij_1 = NULL, n_level = NULL),
            level_names = NULL,
            max_iter = 1000,
            tol = 1e-7,
-           save_progress = FALSE){
+           save_progress = TRUE){
 
   calc_l_cond_ordinal <- function(){
     l_cond <-
@@ -140,7 +160,7 @@ estimate_EM_ordinal <-
 
   if(is.null(init$n_level)){n_level <- length(unique(as.vector(t_k)))}
   if(is.null(level_names)){level_names <- name_thing("level", n_level)}
-  if(any(sapply(init, is.null))){init <- pollinate_EM_ordinal(t_k, n_level = n_level, level_names = level_names)}
+  if(any(sapply(init, is.null))){init <- pollinate_ML_ordinal(t_k, n_level = n_level, level_names = level_names)}
 
   p_t <- init$pi_1_1
   phi_1ij_t <- init$phi_1ij_1
@@ -210,7 +230,16 @@ estimate_EM_ordinal <-
 
 }
 
-pollinate_EM_ordinal <-
+#' Title
+#'
+#' @param data
+#' @param n_level
+#' @param threshold_level
+#' @param level_names
+#'
+#' @return A list of initial values for EM algorithm
+
+pollinate_ML_ordinal <-
   function(data,
            n_level = NULL,
            threshold_level = ceiling(n_level / 2),
@@ -262,5 +291,16 @@ pollinate_EM_ordinal <-
 
   }
 
-# a <- generate_multimethod_data(n_method = 3, type = "ordinal")
-# b <- estimate_EM_ordinal(a$generated_data, save_progress = TRUE)
+plot_ML_binary <-
+  function(
+    ML_est,
+    params = list(prev = NULL, se = NULL, sp = NULL, D = NULL)){
+
+
+
+  }
+
+
+
+
+

@@ -2,7 +2,7 @@ To Do:
  - Initial value warning
  - Plot functions
  - Summary functions
- - S4?
+x - S4?
 x - Standardize output
  - Generalize ord and cont to include NA
  - Comment
@@ -12,3 +12,4 @@ x - Standardize output
 x - Observation names
  - Bootstrap function(s)
 x - Verbose arg?
+- check init arg for correctly named elements

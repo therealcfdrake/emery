@@ -8,22 +8,16 @@
 
 #' Generate data set for multiple continuous methods measuring the same binary variable
 #'
-#' @param n_method number of methods to generate simulated data for
-#' @param n_obs number of observations to simulate
-#' @param prev true prevalence of positives in target population
-#' @param D binary vector representing the true disease status of the observations
-#' @param mu_i1 vector of method mean values for positive observations
-#' @param sigma_i1 covariance matrix of method positive observations
-#' @param mu_i0 vector of method mean values for negative observations
-#' @param sigma_i0 covariance matrix of method negative observations
-#' @param obs_names vector of names of each observation
+#' @inheritParams generate_multimethod_data
+#' @param mu_i1,mu_i0 Used for continuous methods. Vectors of length n_method of the method mean values for positive (negative) observations
+#' @param sigma_i1,sigma_i0 Used for continuous methods. Covariance matrices of method positive (negative) observations
 #'
 #' @return list containing generated data and input parameters
 #' @export
 #' @importFrom mvtnorm rmvnorm
 #'
 
-gen_multi_con <-
+generate_multimethod_continuous <-
   function(
     n_method = 2,
     n_obs = 100,
@@ -65,18 +59,14 @@ gen_multi_con <-
   )
 }
 
-#' EM for continuous methods
+#' Estimate accuracy statistics and prevalence by ML
 #'
-#' @param data A matrix with observations as rows and methods as columns.
-#' @param max_iter Maximum number of iterations to stop seeking convergence of l estimate.
-#' @param tol Change in l below which l is said to converge.
-#' @param save_progress Logical value denoting whether to output the calculated values of each iteration.
-#' @param init A named list of initial values for prevalence, location, and dispersion of disease groups.
+#' @inheritParams estimate_ML
 #'
 #' @return A list containing the final calculated values.
 #' @export
 #'
-estimate_EM_continuous <-
+estimate_ML_continuous <-
   function(data,
            init = list(
              prev_1 = NULL,
@@ -86,7 +76,7 @@ estimate_EM_continuous <-
              sigma_i0_1 = NULL),
            max_iter = 100,
            tol = 1e-7,
-           save_progress = FALSE){
+           save_progress = TRUE){
 
   calc_l_cond_continuous <- function(){
       sum(
@@ -136,7 +126,7 @@ estimate_EM_continuous <-
   n_method <- ncol(t_k)
   method_names <- if(is.null(colnames(t_k))){name_thing("method", n_method)}else{colnames(t_k)}
 
-  if(any(sapply(init, is.null))){init <- pollinate_EM_continuous(t_k)}
+  if(any(sapply(init, is.null))){init <- pollinate_ML_continuous(t_k)}
   prev_m <- init$prev_1
   mu_i1_m <- init$mu_i1_1
   sigma_i1_m <- init$sigma_i1_1
@@ -223,18 +213,16 @@ estimate_EM_continuous <-
 
 ### Starting Value Generator
 
-#' Create initialization values for EM estimation
+#' Create initialization values for ML estimation
 #'
 #' @param t_k A data set of `n_obs` rows and `n_method` columns
 #' @param prev A double between 0-1 representing the proportion of positives in the population
 #' @param q_seeds A vector of length 2 representing the quantiles at which the two groups are assumed to be centered
 #' @param high_pos A logical indicating whether larger values are considered "positive"
 #'
-#' @return
-#' @export
-#'
-#' @examples
-pollinate_EM_continuous <-
+#' @return A list of initial values for EM algorithm
+
+pollinate_ML_continuous <-
   function(t_k,
            prev = 0.5,
            q_seeds = c((1 - prev) / 2, 1 - (prev / 2)),
@@ -261,6 +249,3 @@ pollinate_EM_continuous <-
   )
 
 }
-
-# a <- generate_multimethod_data(n_method = 3, type = "continuous")
-# b <- estimate_EM_continuous(a$generated_data, save_progress = TRUE)

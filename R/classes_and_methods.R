@@ -21,7 +21,6 @@ setMethod(
   signature(object = "MultiMethodMLEstimate"),
     function(object){
       print(object@results)
-      print(object@iter)
     }
   )
 
@@ -32,6 +31,6 @@ setMethod(
     switch(
       x@type,
       binary = plot_ML_binary(x, ...),
-      ordinal = plot_ML_binary(x, ...),
-      continuous = plot_ML_binary(x, ...))
+      ordinal = plot_ML_ordinal(x, ...),
+      continuous = plot_ML_continuous(x, ...))
   })
