@@ -134,7 +134,7 @@ estimate_ML_binary <-
       mean(qk_m)
     }
 
-  if(any(sapply(init, is.null))){init <- pollinate_ML_binary(data)}
+  if(!all(c("prev_1", "se_1", "sp_1") %in% names(init)) | any(sapply(init, is.null))){init <- pollinate_ML_binary(data)}
 
   method_names <- if(is.null(colnames(data))){name_thing("method", ncol(data))}else{colnames(data)}
   obs_names <- if(is.null(rownames(data))){name_thing("obs", nrow(data))}else{rownames(data)}
@@ -224,7 +224,7 @@ estimate_ML_binary <-
 #'
 #' @param data A matrix with n_obs rows and n_method columns
 #'
-#' @return A named list containing the seed values for the EM algorithm
+#' @return A named list containing seed values for the EM algorithm
 #'
 pollinate_ML_binary <-
   function(data){
@@ -238,13 +238,13 @@ pollinate_ML_binary <-
     (\(x) x + runif(n_obs, -0.000001, 0.000001))() |> # randomly break ties
     round()
 
-  # Estimate prev_1 wrt majority classification
+  # Estimate initial prevalence wrt majority classification
   prev_1 <- mean(D_majority, na.rm = TRUE) |> setNames("prev")
 
-  # Estimate individual test se wrt majority classification
+  # Estimate individual method se wrt majority classification
   se_1 <- data[D_majority == 1, ] |> colMeans(na.rm = TRUE) |> setNames(method_names)
 
-  # Estimate individual test sp wrt majority classification
+  # Estimate individual method sp wrt majority classification
   sp_1 <- 1 - (data[D_majority == 0, ] |> colMeans(na.rm = TRUE) |> setNames(method_names))
 
   return(
@@ -282,6 +282,8 @@ plot_ML_binary <-
 
 
   ### Se/Sp scatter plot
+
+  # create long data frame of sequence of se/sp estimates
     se_sp_data <-
       left_join(
         as.data.frame(ML_est@prog$se) %>% mutate(iter = row_number()) %>% pivot_longer(!iter, names_to = "method", values_to = "se"),
@@ -289,17 +291,19 @@ plot_ML_binary <-
         by = join_by(iter, method)
       )
 
+  # create data frame containing final estimate and true value, if known. This is for assessing accuracy of estimates in simulations when true value is known.
     se_sp_result <-
       data.frame(
         method = rep(colnames(ML_est@results$se_est), 2),
-        se = c(ML_est@results$se_est, params$se), #fix
-        sp = c(ML_est@results$sp_est, params$sp), #fix
+        se = c(ML_est@results$se_est, params$se) %>% rep(2 * n_method / length(.)),
+        sp = c(ML_est@results$sp_est, params$sp) %>% rep(2 * n_method / length(.)),
         shape = c(
           rep("final", n_method),
-          rep("param", n_method)
+          rep("truth", n_method)
         )
         )
 
+  # create se/sp line plot showing change in estimates over time
     se_sp_plot <-
       se_sp_data %>%
         ggplot(aes(x = sp, y = se, group = method, color = method)) +
@@ -316,26 +320,32 @@ plot_ML_binary <-
               axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 
     ### ML progress plots
+
+  # create data frame of disease state and observation name for coloring progress plots
     dis_data <- # disease status
       data.frame(
         D = as.character(as.numeric(params$D)),
-        group = as.character(names(params$D)))
+        group = as.character(names(params$D))) %>%
+      mutate(D = paste("Class", D))
 
+  # create progress plots
     list_prog_plots <-
       lapply(prog_plots, function(j){
         df_plot <- as.data.frame(pluck(ML_est, "prog", j)) %>%
           mutate(iter = row_number())
-        color_col <- case_when( # define which column to color lines by
-          j %in% c("A2", "B2", "qk") ~ "D",
-          TRUE ~ "group")
         df_plot %>%
           pivot_longer(!iter, names_to = "group", values_to = "value") %>%
           left_join(dis_data, by = "group") %>%
-          ggplot(aes(x = iter, y = value, group = group, color = .data[[color_col]])) +
+          replace_na(list(D = "Class unknown")) %>%
+          mutate(color_col = case_when( # define which column to color lines by
+            j %in% c("A2", "B2", "qk") ~ D,
+            j %in% c("se", "sp") ~ group,
+            j %in% c("prev") ~ "Estimate")) %>%
+          ggplot(aes(x = iter, y = value, group = group, color = color_col)) +
           geom_line() +
           scale_y_continuous(j, limits = c(0, 1), breaks = seq(0, 1, 0.1), expand = c(0, 0)) +
           scale_x_continuous("Iteration", limits = c(0, ML_est@iter)) +
-          scale_color_brewer(palette = "Set1") +
+          scale_color_brewer("", palette = "Set1", na.value = "gray30", drop = FALSE) +
           theme(panel.background = element_blank(),
                 panel.grid = element_line(color = "gray80"),
                 axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),

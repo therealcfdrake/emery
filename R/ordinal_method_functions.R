@@ -160,7 +160,7 @@ estimate_ML_ordinal <-
 
   if(is.null(init$n_level)){n_level <- length(unique(as.vector(t_k)))}
   if(is.null(level_names)){level_names <- name_thing("level", n_level)}
-  if(any(sapply(init, is.null))){init <- pollinate_ML_ordinal(t_k, n_level = n_level, level_names = level_names)}
+  if(!all(c("prev_1", "se_1", "sp_1") %in% names(init)) | any(sapply(init, is.null))){init <- pollinate_ML_ordinal(t_k, n_level = n_level, level_names = level_names)}
 
   p_t <- init$pi_1_1
   phi_1ij_t <- init$phi_1ij_1
