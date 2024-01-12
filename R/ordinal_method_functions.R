@@ -160,7 +160,9 @@ estimate_ML_ordinal <-
 
   if(is.null(init$n_level)){n_level <- length(unique(as.vector(t_k)))}
   if(is.null(level_names)){level_names <- name_thing("level", n_level)}
-  if(!all(c("prev_1", "se_1", "sp_1") %in% names(init)) | any(sapply(init, is.null))){init <- pollinate_ML_ordinal(t_k, n_level = n_level, level_names = level_names)}
+  if(!all(c("pi_1_1", "phi_1ij_1", "phi_0ij_1", "n_level") %in% names(init)) |
+     any(sapply(init, is.null))
+     ){init <- pollinate_ML_ordinal(t_k, n_level = n_level, level_names = level_names)}
 
   p_t <- init$pi_1_1
   phi_1ij_t <- init$phi_1ij_1
@@ -300,6 +302,18 @@ plot_ML_binary <-
 
   }
 
+
+lapply(b@prog$phi_1ij,
+       function(r) as.data.frame(r) %>% rownames_to_column(var = "level")) |>
+  list_rbind(names_to = "iteration") %>%
+  pivot_longer(c(-iteration, -level)) %>%
+  ggplot(aes(x = iteration, y = value, fill = level)) +
+  geom_col(width = 1, alpha = 0.75) +
+  scale_y_continuous(breaks = seq(0, 1, 0.1), expand = c(0, 0)) +
+  facet_grid(. ~ name) +
+  theme(panel.background = element_blank(),
+        panel.grid = element_line(color = "gray80"),
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 
 
 

@@ -73,12 +73,49 @@ estimate_ML <-
 
 plot_ML <-
   function(
-    type = c("binary", "ordinal", "continuous"),
     ML_est,
     params = NULL){
+    type <- ML_est@type
     switch (type,
             binary = plot_ML_binary(ML_est, params),
             ordinal = plot_ML_ordinal(ML_est, params),
             continuous = plot_ML_continuous(ML_est, params)
     )
   }
+
+
+
+f <- boot::boot(data = a$generated_data, statistic = bootML, R = 100, sim = "parametric", ran.gen = r)
+bootML <- function(d){estimate_ML_binary(d)@results$se}
+
+r <- function(d, mle = 1){d[sample(nrow(d), nrow(d), replace = TRUE), ]}
+
+boot_ML <-
+  function(
+    type = c("binary", "ordinal", "continuous"),
+    data,
+    n_boot = 100,
+    max_iter = 1000,
+    tol = 1e-7,
+    seed = NULL){
+
+  if(!is.null(seed)) set.seed(seed)
+
+    v0 <- estimate_ML(type, data, save_progress = FALSE)
+
+    n_obs <- nrow(data)
+
+    lapply(1:n_boot, function(b){
+      tmp <- data[sample(n_obs, n_obs), ]
+      estimate_ML(type, tmp, save_progress = FALSE)
+    })
+  }
+
+d <- boot_ML("ordinal", a$generated_data)
+
+out_list <- list()
+for (i in 1:100) {
+  for(j in names(d[1]))
+  out_list[[prev_est[i]]] <- map(d, `[[`, i[prev_est])
+}
+purrr::map()

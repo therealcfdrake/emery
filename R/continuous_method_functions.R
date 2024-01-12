@@ -126,7 +126,10 @@ estimate_ML_continuous <-
   n_method <- ncol(t_k)
   method_names <- if(is.null(colnames(t_k))){name_thing("method", n_method)}else{colnames(t_k)}
 
-  if(any(sapply(init, is.null))){init <- pollinate_ML_continuous(t_k)}
+  if(!all(c("prev_1", "mu_i1_1", "sigma_i1_1", "mu_i0_1", "sigma_i0_1") %in% names(init)) |
+     any(sapply(init, is.null))
+  ){init <- pollinate_ML_ordinal(t_k, n_level = n_level, level_names = level_names)}
+
   prev_m <- init$prev_1
   mu_i1_m <- init$mu_i1_1
   sigma_i1_m <- init$sigma_i1_1

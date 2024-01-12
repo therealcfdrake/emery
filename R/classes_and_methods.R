@@ -28,9 +28,5 @@ setMethod(
   "plot",
   signature(x = "MultiMethodMLEstimate"),
   function(x, ...){
-    switch(
-      x@type,
-      binary = plot_ML_binary(x, ...),
-      ordinal = plot_ML_ordinal(x, ...),
-      continuous = plot_ML_continuous(x, ...))
+    plot_ML(x, ...)
   })
