@@ -65,7 +65,7 @@ generate_multimethod_ordinal <-
         n_level = n_level,
         n_obs = dis$n_obs,
         prev = dis$prev,
-        D = dis$D,
+        D = setNames(dis$D, obs_names),
         pmf_pos = pmf_pos,
         pmf_neg = pmf_neg,
         se_observed = se_observed,
@@ -172,7 +172,8 @@ estimate_ML_ordinal <-
   list_prev <- list()
   list_phi_1ij <- list()
   list_phi_0ij <- list()
-  list_y_k <- list()
+  list_A_i <- list()
+  list_y_k <- list(y_k) # does not change
   list_g_1 <- list()
   list_g_0 <- list()
   list_q_k1 <- list()
@@ -181,6 +182,7 @@ estimate_ML_ordinal <-
 
   for(iter in 1:max_iter){
 
+    A_i <- calc_A_i(phi_1ij_t, phi_0ij_t)
     g_1_t <- calc_g_d(phi_1ij_t)
     g_0_t <- calc_g_d(phi_0ij_t)
     q_k1_t <- calc_q_kd(d = 1)
@@ -189,7 +191,7 @@ estimate_ML_ordinal <-
     list_prev <- c(list_prev, list(p_t))
     list_phi_1ij <- c(list_phi_1ij, list(phi_1ij_t))
     list_phi_0ij <- c(list_phi_0ij, list(phi_0ij_t))
-    list_y_k <- c(list_y_k, list(y_k))
+    list_A_i <- c(list_A_i, list(A_i))
     list_g_1 <- c(list_g_1, list(g_1_t))
     list_g_0 <- c(list_g_0, list(g_0_t))
     list_q_k1 <- c(list_q_k1, list(q_k1_t))
@@ -208,6 +210,7 @@ estimate_ML_ordinal <-
     new("MultiMethodMLEstimate",
         results = list(
           prev_est = p_t,
+          A_i_est = A_i,
           phi_1ij_est = phi_1ij_t,
           phi_0ij_est = phi_0ij_t,
           q_k1_est = q_k1_t),
@@ -293,27 +296,161 @@ pollinate_ML_ordinal <-
 
   }
 
-plot_ML_binary <-
+plot_ML_ordinal <-
   function(
     ML_est,
-    params = list(prev = NULL, se = NULL, sp = NULL, D = NULL)){
+    params = list(pi_1_1 = NULL, phi_1ij_1 = NULL, phi_0ij_1 = NULL, D = NULL, obs_names = NULL)){
 
+    # internal functions
+    calc_pr_i <- function(b){
+      phi_dij <- if(b){ML_est@results$phi_1ij_est}else{ML_est@results$phi_0ij_est}
+      sapply(
+        1:n_level,
+        function(l) colSums(matrix(phi_dij[l:n_level, ], ncol = n_method)))
+    }
+    reshape_phi_d <- function(phi_d, d){
+      phi_d %>%
+        as.data.frame() %>%
+        rownames_to_column(var = "level") %>%
+        mutate(d = d)
+    }
+    plot_ROC <- function(){
 
+      AUC_data <-
+        ML_est@results$A_i_est %>%
+        as.list() %>%
+        data.frame() %>%
+        tidyr::pivot_longer(everything(), names_to = "method", values_to = "value") %>%
+        mutate(label = paste0(method, ": ", sprintf("%0.3f", value))) %>%
+        pull(label) %>%
+        paste(collapse = "\n")
+
+      AUC_label <- paste0("AUC\n", AUC_data)
+
+      ROC_data %>%
+        bind_rows(expand.grid(method = method_names, level = "", fpr = 0, tpr = 0)) %>%
+          ggplot(aes(x = fpr, y = tpr, group = method, color = method)) +
+          geom_path() +
+          geom_point() +
+          geom_text(aes(label = level), vjust = "inward", hjust = "inward") + #ggrepel?
+          geom_abline(slope = 1, lty = 2, color = "gray50") +
+          annotate("text", x = 0.7, y = 0.1, label = AUC_label, hjust = 0, vjust = 0) +
+          scale_y_continuous("TPR", limits = c(0, 1), breaks = seq(0, 1, 0.1), expand = c(0, 0)) +
+          scale_x_continuous("FPR", limits = c(0, 1), breaks = seq(0, 1, 0.1), expand = c(0, 0)) +
+          scale_color_brewer("", palette = "Set1", na.value = "gray30", drop = FALSE) +
+          coord_fixed() +
+          theme(panel.background = element_blank(),
+                panel.grid = element_line(color = "gray80"),
+                axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+                legend.position = "bottom") +
+          ggtitle("ROC Curves")
+    }
+    plot_q_kd <- function(q_kd){
+      do.call(rbind, pluck(ML_est, "prog", q_kd)) %>%
+        as.data.frame() %>%
+        setNames(obs_names) %>%
+        mutate(iter = row_number()) %>%
+        tidyr::pivot_longer(!iter, names_to = "group", values_to = "value") %>%
+        dplyr::left_join(dis_data, by = "group") %>%
+        replace_na(list(D = "Class unknown")) %>%
+        ggplot(aes(x = iter, y = value, group = group, color = D)) +
+        geom_line() +
+        scale_y_continuous(q_kd, limits = c(0, 1), breaks = seq(0, 1, 0.1), expand = c(0, 0)) +
+        scale_x_continuous("Iteration", limits = c(0, ML_est@iter)) +
+        scale_color_brewer("", palette = "Set1", na.value = "gray30", drop = FALSE) +
+        theme(panel.background = element_blank(),
+              panel.grid = element_line(color = "gray80"),
+              axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+              legend.position = "bottom")
+    }
+
+    # dimensions and names
+    n_level <- nrow(ML_est@results$phi_0ij_est)
+    level_names <- rownames(ML_est@results$phi_0ij_est)
+    n_method <- ncol(ML_est@results$phi_0ij_est)
+    method_names <- colnames(ML_est@results$phi_0ij_est)
+    n_obs <- length(ML_est@results$q_k1_est)
+    if(is.null(params$obs_names)){obs_names <- name_thing("obs", n_obs)}else{obs_names <- params$obs_names}
+
+    ### ROC Plot
+
+    fpr_i <- calc_pr_i(FALSE)
+    tpr_i <- calc_pr_i(TRUE)
+
+    dimnames(fpr_i) <- list(method_names, level_names)
+    dimnames(tpr_i) <- list(method_names, level_names)
+
+    ROC_data <-
+      dplyr::left_join(
+        fpr_i_long <- as.data.frame(as.table(fpr_i)),
+        tpr_i_long <- as.data.frame(as.table(tpr_i)),
+        by = c("Var1", "Var2")
+      )
+
+    colnames(ROC_data) <- c("method", "level", "fpr", "tpr")
+
+    ROC_plot <- plot_ROC()
+
+    # create progress plots
+    # create data frame of disease state and observation name for coloring progress plots
+    dis_data <- # disease status
+      data.frame(
+        D = as.character(as.numeric(params$D)),
+        group = as.character(names(params$D))) %>%
+      mutate(D = paste("Class", D))
+
+    q_k1_plot <- plot_q_kd("q_k1")
+    q_k0_plot <- plot_q_kd("q_k0")
+
+    # q_k1 histogram
+
+    q_k1_hist <-
+      data.frame(q_k1_est = ML_est@results$q_k1_est) %>%
+      ggplot(aes(x = q_k1_est)) +
+      geom_histogram(binwidth = 0.01, boundary = -1e-10) +
+      scale_y_continuous("Observations", limits = c(0, NA), expand = c(0, 0.5)) +
+      scale_x_continuous(breaks = seq(0, 1, 0.05), expand = c(0, 0), limits = c(-0.02, 1.02)) +
+      theme(panel.background = element_blank(),
+            panel.grid = element_line(color = "gray80"),
+            panel.spacing = unit(2, "lines"),
+            strip.text.y.right = element_text(),
+            strip.background = element_rect(fill = "gray80", color = "black"),
+            axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+
+    # phi plot
+
+    phi_d_plot <-
+      bind_rows(
+        reshape_phi_d(ML_est@results$phi_1ij_est, "d = 1"),
+        reshape_phi_d(ML_est@results$phi_0ij_est, "d = 0")
+      ) %>%
+        tidyr::pivot_longer(c(-level, -d)) %>%
+        ggplot(aes(x = name, y = value, fill = level)) +
+        geom_col(width = 1, alpha = 0.75, color = "black") +
+        scale_y_continuous("p", breaks = seq(0, 1, 0.05), expand = c(0, 0), limits = c(0, 1)) +
+        scale_x_discrete("Method", expand = c(0, 0)) +
+        scale_fill_brewer(palette = "Set1") +
+        facet_grid(d ~ .) +
+        theme(panel.background = element_blank(),
+              panel.grid = element_line(color = "gray80"),
+              panel.grid.major.x = element_blank(),
+              panel.spacing = unit(2, "lines"),
+              strip.text.y.right = element_text(),
+              strip.background = element_rect(fill = "gray80", color = "black"),
+              axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+        ggtitle("Predicted CMF")
+
+    return(
+      list(
+        ROC = ROC_plot,
+        q_k1 = q_k1_plot,
+        q_k0 = q_k0_plot,
+        q_k1_hist = q_k1_hist,
+        phi_d = phi_d_plot))
 
   }
 
 
-lapply(b@prog$phi_1ij,
-       function(r) as.data.frame(r) %>% rownames_to_column(var = "level")) |>
-  list_rbind(names_to = "iteration") %>%
-  pivot_longer(c(-iteration, -level)) %>%
-  ggplot(aes(x = iteration, y = value, fill = level)) +
-  geom_col(width = 1, alpha = 0.75) +
-  scale_y_continuous(breaks = seq(0, 1, 0.1), expand = c(0, 0)) +
-  facet_grid(. ~ name) +
-  theme(panel.background = element_blank(),
-        panel.grid = element_line(color = "gray80"),
-        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 
 
 
