@@ -1,4 +1,11 @@
 
+#' Create unique names for a set of things
+#'
+#' @param thing a string that describes the set of items to name
+#' @param n an integer number of unique names to create
+#'
+#' @return a vector of unique names
+#'
 name_thing <-
   function(thing = "", n = 1){
 
@@ -6,6 +13,14 @@ name_thing <-
 
   }
 
+#' Define the True disease state of a simulated sample
+#'
+#' @param D True disease state
+#' @param n_obs integer number of observations
+#' @param prev prevalence of positive observations in population
+#'
+#' @return A list of features defining the true disease status of each observation
+#'
 define_disease_state <-
   function(D = NULL, n_obs = NULL, prev = NULL){
 

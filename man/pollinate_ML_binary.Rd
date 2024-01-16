@@ -2,7 +2,7 @@
 % Please edit documentation in R/binary_method_functions.R
 \name{pollinate_ML_binary}
 \alias{pollinate_ML_binary}
-\title{Generate starting values for EM algorithm}
+\title{Create Seed Values for EM Algorithm}
 \usage{
 pollinate_ML_binary(data)
 }
@@ -10,8 +10,8 @@ pollinate_ML_binary(data)
 \item{data}{A matrix with n_obs rows and n_method columns}
 }
 \value{
-A named list containing the seed values for the EM algorithm
+A named list containing seed values for the EM algorithm
 }
 \description{
-Generate starting values for EM algorithm
+Create Seed Values for EM Algorithm
 }

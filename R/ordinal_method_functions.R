@@ -5,10 +5,8 @@
 #' @param pmf_pos,pmf_neg Used for ordinal methods. A n_method by n_level matrix representing the probability mass functions for positive and negative results, respectively
 #' @param level_names Used for ordinal methods. Optional vector of names used to identify each level
 #'
-#' @return
-#' @export
+#' @return A list containing the simulated data set and the parameters used to generate it
 #'
-#' @examples
 generate_multimethod_ordinal <-
   function(n_method = 3,
            n_obs = 100,
@@ -87,12 +85,11 @@ generate_multimethod_ordinal <-
 #' Estimate accuracy statistics and prevalence by ML
 #'
 #' @inheritParams estimate_ML
-#' @param level_names
+#' @param level_names An optional, ordered, character vector of unique names corresponding to
+#' the levels of the methods.
 #'
-#' @return
-#' @export
+#' @return a MultiMethodMLEstimate class S4 object containing ML accuracy statistics by EM
 #'
-#' @examples
 estimate_ML_ordinal <-
   function(data,
            init = list(pi_1_1 = NULL, phi_1ij_1 = NULL, phi_0ij_1 = NULL, n_level = NULL),
@@ -235,12 +232,12 @@ estimate_ML_ordinal <-
 
 }
 
-#' Title
+#' Create Seed Values for EM Algorithm
 #'
-#' @param data
-#' @param n_level
-#' @param threshold_level
-#' @param level_names
+#' @param data a
+#' @param n_level a
+#' @param threshold_level a
+#' @param level_names a
 #'
 #' @return A list of initial values for EM algorithm
 
@@ -296,6 +293,20 @@ pollinate_ML_ordinal <-
 
   }
 
+#' Create plots of ordinal multimethod comparison estimates
+#'
+#' @param ML_est A MultiMethodMLEstimate class object with type "Ordinal"
+#' @param params A list of population parameters. This is mostly used to evaluate
+#' results from a simulation (where parameters are already known), but can be used to visualize
+#' results with respect to some True value.
+#'
+#' @return a list of ggplot2 plots
+#' @import ggplot2
+#' @import dplyr
+#' @import tidyr
+#' @importFrom purrr pluck
+#' @import tibble
+#'
 plot_ML_ordinal <-
   function(
     ML_est,
@@ -311,8 +322,8 @@ plot_ML_ordinal <-
     reshape_phi_d <- function(phi_d, d){
       phi_d %>%
         as.data.frame() %>%
-        rownames_to_column(var = "level") %>%
-        mutate(d = d)
+        tibble::rownames_to_column(var = "level") %>%
+        dplyr::mutate(d = d)
     }
     plot_ROC <- function(){
 
@@ -321,46 +332,46 @@ plot_ML_ordinal <-
         as.list() %>%
         data.frame() %>%
         tidyr::pivot_longer(everything(), names_to = "method", values_to = "value") %>%
-        mutate(label = paste0(method, ": ", sprintf("%0.3f", value))) %>%
-        pull(label) %>%
+        dplyr::mutate(label = paste0(method, ": ", sprintf("%0.3f", value))) %>%
+        dplyr::pull(label) %>%
         paste(collapse = "\n")
 
       AUC_label <- paste0("AUC\n", AUC_data)
 
       ROC_data %>%
-        bind_rows(expand.grid(method = method_names, level = "", fpr = 0, tpr = 0)) %>%
-          ggplot(aes(x = fpr, y = tpr, group = method, color = method)) +
-          geom_path() +
-          geom_point() +
-          geom_text(aes(label = level), vjust = "inward", hjust = "inward") + #ggrepel?
-          geom_abline(slope = 1, lty = 2, color = "gray50") +
-          annotate("text", x = 0.7, y = 0.1, label = AUC_label, hjust = 0, vjust = 0) +
-          scale_y_continuous("TPR", limits = c(0, 1), breaks = seq(0, 1, 0.1), expand = c(0, 0)) +
-          scale_x_continuous("FPR", limits = c(0, 1), breaks = seq(0, 1, 0.1), expand = c(0, 0)) +
-          scale_color_brewer("", palette = "Set1", na.value = "gray30", drop = FALSE) +
-          coord_fixed() +
-          theme(panel.background = element_blank(),
-                panel.grid = element_line(color = "gray80"),
-                axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+        dplyr::bind_rows(expand.grid(method = method_names, level = "", fpr = 0, tpr = 0)) %>%
+        ggplot2::ggplot(ggplot2::aes(x = fpr, y = tpr, group = method, color = method)) +
+        ggplot2::geom_path() +
+        ggplot2::geom_point() +
+        ggplot2::geom_text(ggplot2::aes(label = level), vjust = "inward", hjust = "inward") + #ggrepel?
+        ggplot2::geom_abline(slope = 1, lty = 2, color = "gray50") +
+        ggplot2::annotate("text", x = 0.7, y = 0.1, label = AUC_label, hjust = 0, vjust = 0) +
+        ggplot2::scale_y_continuous("TPR", limits = c(0, 1), breaks = seq(0, 1, 0.1), expand = c(0, 0)) +
+        ggplot2::scale_x_continuous("FPR", limits = c(0, 1), breaks = seq(0, 1, 0.1), expand = c(0, 0)) +
+        ggplot2::scale_color_brewer("", palette = "Set1", na.value = "gray30", drop = FALSE) +
+        ggplot2::coord_fixed() +
+        ggplot2::theme(panel.background = ggplot2::element_blank(),
+                panel.grid = ggplot2::element_line(color = "gray80"),
+                axis.text.x = ggplot2::element_text(angle = 90, hjust = 1, vjust = 0.5),
                 legend.position = "bottom") +
-          ggtitle("ROC Curves")
+        ggplot2::ggtitle("ROC Curves")
     }
     plot_q_kd <- function(q_kd){
-      do.call(rbind, pluck(ML_est, "prog", q_kd)) %>%
+      do.call(rbind, purrr::pluck(ML_est, "prog", q_kd)) %>%
         as.data.frame() %>%
         setNames(obs_names) %>%
-        mutate(iter = row_number()) %>%
+        dplyr::mutate(iter = row_number()) %>%
         tidyr::pivot_longer(!iter, names_to = "group", values_to = "value") %>%
         dplyr::left_join(dis_data, by = "group") %>%
-        replace_na(list(D = "Class unknown")) %>%
-        ggplot(aes(x = iter, y = value, group = group, color = D)) +
-        geom_line() +
-        scale_y_continuous(q_kd, limits = c(0, 1), breaks = seq(0, 1, 0.1), expand = c(0, 0)) +
-        scale_x_continuous("Iteration", limits = c(0, ML_est@iter)) +
-        scale_color_brewer("", palette = "Set1", na.value = "gray30", drop = FALSE) +
-        theme(panel.background = element_blank(),
-              panel.grid = element_line(color = "gray80"),
-              axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+        tidyr::replace_na(list(D = "Class unknown")) %>%
+        ggplot2::ggplot(ggplot2::aes(x = iter, y = value, group = group, color = D)) +
+        ggplot2::geom_line() +
+        ggplot2::scale_y_continuous(q_kd, limits = c(0, 1), breaks = seq(0, 1, 0.1), expand = c(0, 0)) +
+        ggplot2::scale_x_continuous("Iteration", limits = c(0, ML_est@iter)) +
+        ggplot2::scale_color_brewer("", palette = "Set1", na.value = "gray30", drop = FALSE) +
+        ggplot2::theme(panel.background = ggplot2::element_blank(),
+              panel.grid = ggplot2::element_line(color = "gray80"),
+              axis.text.x = ggplot2::element_text(angle = 90, hjust = 1, vjust = 0.5),
               legend.position = "bottom")
     }
 
@@ -397,7 +408,7 @@ plot_ML_ordinal <-
       data.frame(
         D = as.character(as.numeric(params$D)),
         group = as.character(names(params$D))) %>%
-      mutate(D = paste("Class", D))
+      dplyr::mutate(D = paste("Class", D))
 
     q_k1_plot <- plot_q_kd("q_k1")
     q_k0_plot <- plot_q_kd("q_k0")
@@ -406,39 +417,43 @@ plot_ML_ordinal <-
 
     q_k1_hist <-
       data.frame(q_k1_est = ML_est@results$q_k1_est) %>%
-      ggplot(aes(x = q_k1_est)) +
-      geom_histogram(binwidth = 0.01, boundary = -1e-10) +
-      scale_y_continuous("Observations", limits = c(0, NA), expand = c(0, 0.5)) +
-      scale_x_continuous(breaks = seq(0, 1, 0.05), expand = c(0, 0), limits = c(-0.02, 1.02)) +
-      theme(panel.background = element_blank(),
-            panel.grid = element_line(color = "gray80"),
+      dplyr::mutate(D = ifelse(
+        is.null(params$D), NA_character_,
+        as.character(as.numeric(params$D)))) %>% ### FIX THIS ####
+      ggplot2::ggplot(ggplot2::aes(x = q_k1_est, fill = D)) +
+      ggplot2::geom_histogram(binwidth = 0.01, boundary = -1e-10) +
+      ggplot2::scale_y_continuous("Observations", limits = c(0, NA), expand = c(0, 0.5)) +
+      ggplot2::scale_x_continuous(breaks = seq(0, 1, 0.05), expand = c(0, 0), limits = c(-0.02, 1.02)) +
+      ggplot2::scale_fill_brewer("", palette = "Set1", na.value = "gray30", drop = FALSE) +
+      ggplot2::theme(panel.background = ggplot2::element_blank(),
+            panel.grid = ggplot2::element_line(color = "gray80"),
             panel.spacing = unit(2, "lines"),
-            strip.text.y.right = element_text(),
-            strip.background = element_rect(fill = "gray80", color = "black"),
-            axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+            strip.text.y.right = ggplot2::element_text(),
+            strip.background = ggplot2::element_rect(fill = "gray80", color = "black"),
+            axis.text.x = ggplot2::element_text(angle = 90, hjust = 1, vjust = 0.5))
 
     # phi plot
 
     phi_d_plot <-
-      bind_rows(
+      dplyr::bind_rows(
         reshape_phi_d(ML_est@results$phi_1ij_est, "d = 1"),
         reshape_phi_d(ML_est@results$phi_0ij_est, "d = 0")
       ) %>%
         tidyr::pivot_longer(c(-level, -d)) %>%
-        ggplot(aes(x = name, y = value, fill = level)) +
-        geom_col(width = 1, alpha = 0.75, color = "black") +
-        scale_y_continuous("p", breaks = seq(0, 1, 0.05), expand = c(0, 0), limits = c(0, 1)) +
-        scale_x_discrete("Method", expand = c(0, 0)) +
-        scale_fill_brewer(palette = "Set1") +
-        facet_grid(d ~ .) +
-        theme(panel.background = element_blank(),
-              panel.grid = element_line(color = "gray80"),
-              panel.grid.major.x = element_blank(),
+      ggplot2::ggplot(ggplot2::aes(x = name, y = value, fill = level)) +
+      ggplot2::geom_col(width = 1, alpha = 0.75, color = "black") +
+      ggplot2::scale_y_continuous("p", breaks = seq(0, 1, 0.10), expand = c(0, 0), limits = c(0, 1)) +
+      ggplot2::scale_x_discrete("Method", expand = c(0, 0)) +
+      ggplot2::scale_fill_brewer(palette = "Set1") +
+      ggplot2::facet_grid(d ~ .) +
+      ggplot2::theme(panel.background = ggplot2::element_blank(),
+              panel.grid = ggplot2::element_line(color = "gray80"),
+              panel.grid.major.x = ggplot2::element_blank(),
               panel.spacing = unit(2, "lines"),
-              strip.text.y.right = element_text(),
-              strip.background = element_rect(fill = "gray80", color = "black"),
-              axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-        ggtitle("Predicted CMF")
+              strip.text.y.right = ggplot2::element_text(),
+              strip.background = ggplot2::element_rect(fill = "gray80", color = "black"),
+              axis.text.x = ggplot2::element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+      ggplot2::ggtitle("Predicted CMF")
 
     return(
       list(

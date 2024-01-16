@@ -2,7 +2,7 @@
 % Please edit documentation in R/ordinal_method_functions.R
 \name{pollinate_ML_ordinal}
 \alias{pollinate_ML_ordinal}
-\title{Title}
+\title{Create Seed Values for EM Algorithm}
 \usage{
 pollinate_ML_ordinal(
   data,
@@ -12,8 +12,17 @@ pollinate_ML_ordinal(
 )
 }
 \arguments{
-\item{level_names}{}
+\item{data}{a}
+
+\item{n_level}{a}
+
+\item{threshold_level}{a}
+
+\item{level_names}{a}
+}
+\value{
+A list of initial values for EM algorithm
 }
 \description{
-Title
+Create Seed Values for EM Algorithm
 }

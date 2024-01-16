@@ -13,7 +13,6 @@
 #' @param sigma_i1,sigma_i0 Used for continuous methods. Covariance matrices of method positive (negative) observations
 #'
 #' @return list containing generated data and input parameters
-#' @export
 #' @importFrom mvtnorm rmvnorm
 #'
 
@@ -64,7 +63,7 @@ generate_multimethod_continuous <-
 #' @inheritParams estimate_ML
 #'
 #' @return A list containing the final calculated values.
-#' @export
+#' @importFrom stats setNames pnorm
 #'
 estimate_ML_continuous <-
   function(data,
@@ -119,7 +118,7 @@ estimate_ML_continuous <-
     (mu_i1_m - mu_i0_m) / sqrt(diag(sigma_i1_m) + diag(sigma_i0_m))
   }
   calc_A_j <- function(){
-    setNames(pnorm(eta_j_m), method_names)
+    stats::setNames(stats::pnorm(eta_j_m), method_names)
   }
 
   t_k <- data
@@ -128,7 +127,7 @@ estimate_ML_continuous <-
 
   if(!all(c("prev_1", "mu_i1_1", "sigma_i1_1", "mu_i0_1", "sigma_i0_1") %in% names(init)) |
      any(sapply(init, is.null))
-  ){init <- pollinate_ML_ordinal(t_k, n_level = n_level, level_names = level_names)}
+  ){init <- pollinate_ML_continuous(t_k)}
 
   prev_m <- init$prev_1
   mu_i1_m <- init$mu_i1_1
@@ -216,7 +215,7 @@ estimate_ML_continuous <-
 
 ### Starting Value Generator
 
-#' Create initialization values for ML estimation
+#' Create Seed Values for EM Algorithm
 #'
 #' @param t_k A data set of `n_obs` rows and `n_method` columns
 #' @param prev A double between 0-1 representing the proportion of positives in the population

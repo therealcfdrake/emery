@@ -2,7 +2,7 @@
 % Please edit documentation in R/continuous_method_functions.R
 \name{pollinate_ML_continuous}
 \alias{pollinate_ML_continuous}
-\title{Create initialization values for ML estimation}
+\title{Create Seed Values for EM Algorithm}
 \usage{
 pollinate_ML_continuous(
   t_k,
@@ -20,6 +20,9 @@ pollinate_ML_continuous(
 
 \item{high_pos}{A logical indicating whether larger values are considered "positive"}
 }
+\value{
+A list of initial values for EM algorithm
+}
 \description{
-Create initialization values for ML estimation
+Create Seed Values for EM Algorithm
 }

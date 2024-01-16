@@ -13,18 +13,20 @@ estimate_ML_binary(
 )
 }
 \arguments{
-\item{data}{A matrix with n_obs rows and n_method columns}
+\item{data}{An n_obs by n_method matrix containing the observed values for each method. If dimensions are named, row names will be used for obs_names, and column names will be used for method_names}
 
-\item{init}{A named list of initial values for EM algorithm}
+\item{init}{An optional list of initial values used to seed the EM algorithm. If initial values are not provided, a function will be called on the data to estimate starting values.}
 
-\item{max_iter}{An integer representing the maximum number of iterations to allow before stopping}
+\item{max_iter}{The maximum number of EM algorithm iterations to compute before reporting a result.}
 
-\item{tol}{The minimum change between iterations required to continue iterating}
+\item{tol}{The minimum change in statistic estimates needed to continue iterating the EM algorithm.}
 
-\item{save_progress}{A logical value indicating whether to save statistic values for each iteration.}
+\item{save_progress}{A logical indication whether to save interim calculations used in the EM algorithm.}
 }
 \value{
-A list of statistics resulting from the application of the EM algorithm. If save_progress is TRUE, a list of each value needed by the algorithm for each iteration will also be included.
+A list of statistics resulting from the application of the EM algorithm.
+If save_progress is TRUE, a list of each value needed by the algorithm for each
+iteration will also be included.
 }
 \description{
 Estimate accuracy statistics and prevalence by ML

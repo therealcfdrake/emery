@@ -25,14 +25,15 @@ generate_multimethod_data <-
     method_names = NULL,
     obs_names = NULL,
     ...){
+    type <- match.arg(type)
     switch (type,
-            binary = generate_MM_binary(n_method, n_obs, prev, D, method_names = method_names, obs_names = obs_names, ...),
-            ordinal = generate_MM_ordinal(n_method, n_obs, prev, D, method_names = method_names, obs_names = obs_names, ...),
-            continuous = generate_MM_continuous(n_method, n_obs, prev, D, method_names = method_names, obs_names = obs_names, ...)
+            binary = generate_multimethod_binary(n_method, n_obs, prev, D, method_names = method_names, obs_names = obs_names, ...),
+            ordinal = generate_multimethod_ordinal(n_method, n_obs, prev, D, method_names = method_names, obs_names = obs_names, ...),
+            continuous = generate_multimethod_continuous(n_method, n_obs, prev, D, method_names = method_names, obs_names = obs_names, ...)
     )
   }
 
-#' Estimate maximum likelihood values by expectation maximization
+#' Estimate maximum likelihood accuracy statistics by expectation maximization
 #'
 #' @inheritDotParams estimate_ML_ordinal
 #' @param type A string specifying the data type of the methods under evaluation
@@ -43,7 +44,7 @@ generate_multimethod_data <-
 #' @param save_progress A logical indication whether to save interim calculations used in the EM algorithm.
 #' @param ...
 #'
-#' @return
+#' @return a MultiMethodMLEstimate class S4 object containing ML accuracy statistics by EM
 #' @export
 
 estimate_ML <-
@@ -55,6 +56,7 @@ estimate_ML <-
     tol = 1e-7,
     save_progress = TRUE,
     ...){
+    type <- match.arg(type)
     switch (type,
             binary = estimate_ML_binary(data = data, init = init, max_iter = max_iter, tol = tol, save_progress = save_progress, ... = ...),
             ordinal = estimate_ML_ordinal(data = data, init = init, max_iter = max_iter, tol = tol, save_progress = save_progress, ... = ...),
@@ -62,13 +64,13 @@ estimate_ML <-
     )
   }
 
-#' Create plots illustrating the ML estimation process
+#' Create plots of ML estimation process
 #'
 #' @param type A string specifying the data type of the methods under evaluation
 #' @param ML_est A MultiMethodEstimate class object
 #' @param params An optional list of population parameters
 #'
-#' @return
+#' @return a list of ggplot2 plots
 #' @export
 
 plot_ML <-
@@ -84,12 +86,15 @@ plot_ML <-
   }
 
 
-
-f <- boot::boot(data = a$generated_data, statistic = bootML, R = 100, sim = "parametric", ran.gen = r)
-bootML <- function(d){estimate_ML_binary(d)@results$se}
-
-r <- function(d, mle = 1){d[sample(nrow(d), nrow(d), replace = TRUE), ]}
-
+#' Bootstrap Accuracy Statistic Estimation for Multimethod Data
+#'
+#' @inheritDotParams estimate_ML
+#' @param n_boot number of bootstrap estimates to compute
+#' @param seed optional seed for RNG
+#'
+#' @return a list containing accuracy estimates `v` and the parameters used
+#' @export
+#'
 boot_ML <-
   function(
     type = c("binary", "ordinal", "continuous"),
@@ -101,21 +106,33 @@ boot_ML <-
 
   if(!is.null(seed)) set.seed(seed)
 
-    v0 <- estimate_ML(type, data, save_progress = FALSE)
+    type <- match.arg(type)
+
+    v_0 <- estimate_ML(type, data, save_progress = FALSE)
 
     n_obs <- nrow(data)
 
+    v_star <-
     lapply(1:n_boot, function(b){
-      tmp <- data[sample(n_obs, n_obs), ]
+      tmp <- data[sample(n_obs, n_obs, replace = TRUE), ]
       estimate_ML(type, tmp, save_progress = FALSE)
     })
+
+    return(
+      list(
+        v_0 = v_0,
+        v_star = v_star,
+        params = list(
+          data = data,
+          n_boot = n_boot,
+          max_iter = max_iter,
+          tol = tol,
+          seed = seed
+        )
+
+      )
+    )
+
   }
 
-d <- boot_ML("ordinal", a$generated_data)
 
-out_list <- list()
-for (i in 1:100) {
-  for(j in names(d[1]))
-  out_list[[prev_est[i]]] <- map(d, `[[`, i[prev_est])
-}
-purrr::map()

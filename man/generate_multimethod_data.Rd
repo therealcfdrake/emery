@@ -31,16 +31,16 @@ generate_multimethod_data(
 \item{obs_names}{Optional vector of names used to identify each observation}
 
 \item{...}{
-  Arguments passed on to \code{\link[=generate_MM_binary]{generate_MM_binary}}, \code{\link[=generate_MM_ordinal]{generate_MM_ordinal}}, \code{\link[=generate_MM_continuous]{generate_MM_continuous}}
+  Arguments passed on to \code{\link[=generate_multimethod_binary]{generate_multimethod_binary}}, \code{\link[=generate_multimethod_ordinal]{generate_multimethod_ordinal}}, \code{\link[=generate_multimethod_continuous]{generate_multimethod_continuous}}
   \describe{
-    \item{\code{se,sp}}{A vector of length n_method of values between 0-1 representing the sensitivity and specificity of the methods}
-    \item{\code{n_method_subset}}{An integer defining how many methods to select at random to produce a result for each observation}
-    \item{\code{first_reads_all}}{A logical which forces method 1 to have a result for every observation}
-    \item{\code{n_level}}{An integer representing the number of ordinal levels each method has}
-    \item{\code{pmf_pos,pmf_neg}}{A n_method by n_level matrix representing the probability mass functions for positive and negative results, respectively}
-    \item{\code{level_names}}{Optional vector of names used to identify each level}
-    \item{\code{mu_i1,mu_i0}}{A vector of length n_method of the method mean values for positive (negative) observations}
-    \item{\code{sigma_i1,sigma_i0}}{covariance matrix of method positive (negative) observations}
+    \item{\code{se,sp}}{Used for binary methods. A vector of length n_method of values between 0-1 representing the sensitivity and specificity of the methods}
+    \item{\code{n_method_subset}}{Used for binary methods. An integer defining how many methods to select at random to produce a result for each observation}
+    \item{\code{first_reads_all}}{Used for binary methods. A logical which forces method 1 to have a result for every observation}
+    \item{\code{n_level}}{Used for ordinal methods. An integer representing the number of ordinal levels each method has}
+    \item{\code{pmf_pos,pmf_neg}}{Used for ordinal methods. A n_method by n_level matrix representing the probability mass functions for positive and negative results, respectively}
+    \item{\code{level_names}}{Used for ordinal methods. Optional vector of names used to identify each level}
+    \item{\code{mu_i1,mu_i0}}{Used for continuous methods. Vectors of length n_method of the method mean values for positive (negative) observations}
+    \item{\code{sigma_i1,sigma_i0}}{Used for continuous methods. Covariance matrices of method positive (negative) observations}
   }}
 }
 \value{

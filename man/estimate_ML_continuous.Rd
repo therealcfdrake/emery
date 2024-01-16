@@ -2,7 +2,7 @@
 % Please edit documentation in R/continuous_method_functions.R
 \name{estimate_ML_continuous}
 \alias{estimate_ML_continuous}
-\title{ML for continuous methods}
+\title{Estimate accuracy statistics and prevalence by ML}
 \usage{
 estimate_ML_continuous(
   data,
@@ -10,23 +10,23 @@ estimate_ML_continuous(
     sigma_i0_1 = NULL),
   max_iter = 100,
   tol = 1e-07,
-  save_progress = FALSE
+  save_progress = TRUE
 )
 }
 \arguments{
-\item{data}{A matrix with observations as rows and methods as columns.}
+\item{data}{An n_obs by n_method matrix containing the observed values for each method. If dimensions are named, row names will be used for obs_names, and column names will be used for method_names}
 
-\item{init}{A named list of initial values for prevalence, location, and dispersion of disease groups.}
+\item{init}{An optional list of initial values used to seed the EM algorithm. If initial values are not provided, a function will be called on the data to estimate starting values.}
 
-\item{max_iter}{Maximum number of iterations to stop seeking convergence of l estimate.}
+\item{max_iter}{The maximum number of EM algorithm iterations to compute before reporting a result.}
 
-\item{tol}{Change in l below which l is said to converge.}
+\item{tol}{The minimum change in statistic estimates needed to continue iterating the EM algorithm.}
 
-\item{save_progress}{Logical value denoting whether to output the calculated values of each iteration.}
+\item{save_progress}{A logical indication whether to save interim calculations used in the EM algorithm.}
 }
 \value{
 A list containing the final calculated values.
 }
 \description{
-ML for continuous methods
+Estimate accuracy statistics and prevalence by ML
 }

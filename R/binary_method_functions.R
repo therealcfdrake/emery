@@ -6,8 +6,7 @@
 #' @param first_reads_all Used for binary methods. A logical which forces method 1 to have a result for every observation
 #'
 #' @return A list containing the simulated data set and the parameters used to generate it
-#' @export
-#'
+#' @importFrom stats rbinom setNames
 
 generate_multimethod_binary <-
   function(n_method = 3,
@@ -22,9 +21,6 @@ generate_multimethod_binary <-
            first_reads_all = FALSE
   ){
 
-    # "True" values have no suffix and are provided by user (population parameters)
-    # "*_observed" - calculated using observed values with the "True" value as the reference. These show how closely the random sample matches the desired input.
-
     # Create unique names for each method and observation if names are not provided
     if(is.null(method_names)){method_names <- name_thing("method", n_method)}
     if(is.null(obs_names)){obs_names <- name_thing("obs", n_obs)}
@@ -32,7 +28,8 @@ generate_multimethod_binary <-
     # Define the True disease state based on input criteria
     dis <- define_disease_state(D, n_obs, prev)
 
-    # Create dataframe to (optionally) randomly censor observations such that only "n_method_subset" results are reported for each observation
+    # Create dataframe to (optionally) randomly censor observations such that
+    # only "n_method_subset" results are reported for each observation
     subset_matrix <-
       lapply(1:dis$n_obs, function(i)
         if(!first_reads_all){sample(c(rep(1, n_method_subset), rep(NA, n_method - n_method_subset)), n_method, replace = FALSE)
@@ -44,19 +41,21 @@ generate_multimethod_binary <-
 
     # Build simulated data set based on input criteria
     generated_data <-
-      lapply(1:n_method, function(i) rbinom(dis$n_obs, 1, se[i] * dis$D + (1 - sp[i]) * (1 - dis$D))) |>
+      lapply(1:n_method, function(i) stats::rbinom(dis$n_obs, 1, se[i] * dis$D + (1 - sp[i]) * (1 - dis$D))) |>
       do.call(what = cbind, args = _) * subset_matrix
 
     dimnames(generated_data) <- list(obs_names, method_names)
 
-    # Calculate individual method se based on input criteria. This will differ slightly from "se" due to random sampling.
+    # Calculate individual method se based on input criteria. This will differ
+    # slightly from "se" due to random sampling.
     se_observed <-
       cbind(generated_data, D = dis$D) |>
       (\(x) x[which(x[, "D"] == 1), ])() |>
       subset(select = -D) |>
       colMeans(na.rm = TRUE)
 
-    # Calculate individual method sp based on input criteria. This will differ slightly from "sp" due to random sampling.
+    # Calculate individual method sp based on input criteria. This will differ
+    # slightly from "sp" due to random sampling.
     sp_observed <-
       cbind(generated_data, D = dis$D) |>
       (\(x) x[which(x[, "D"] == 0), ])() |>
@@ -71,7 +70,7 @@ generate_multimethod_binary <-
         prev = dis$prev,
         se = se,
         sp = sp,
-        D = setNames(dis$D, obs_names),
+        D = stats::setNames(dis$D, obs_names),
         se_observed = se_observed,
         sp_observed = sp_observed,
         method_names = method_names,
@@ -90,10 +89,10 @@ generate_multimethod_binary <-
 #'
 #' @inheritParams estimate_ML
 #'
-#' @return A list of statistics resulting from the application of the EM algorithm. If save_progress is TRUE, a list of each value needed by the algorithm for each iteration will also be included.
-#' @export
+#' @return A list of statistics resulting from the application of the EM algorithm.
+#' If save_progress is TRUE, a list of each value needed by the algorithm for each
+#' iteration will also be included.
 #'
-#' @examples
 
 estimate_ML_binary <-
   function(data,
@@ -220,12 +219,12 @@ estimate_ML_binary <-
 
 }
 
-#' Generate starting values for EM algorithm
+#' Create Seed Values for EM Algorithm
 #'
 #' @param data A matrix with n_obs rows and n_method columns
 #'
 #' @return A named list containing seed values for the EM algorithm
-#'
+#' @importFrom stats setNames
 pollinate_ML_binary <-
   function(data){
 
@@ -239,13 +238,13 @@ pollinate_ML_binary <-
     round()
 
   # Estimate initial prevalence wrt majority classification
-  prev_1 <- mean(D_majority, na.rm = TRUE) |> setNames("prev")
+  prev_1 <- mean(D_majority, na.rm = TRUE) |> stats::setNames("prev")
 
   # Estimate individual method se wrt majority classification
-  se_1 <- data[D_majority == 1, ] |> colMeans(na.rm = TRUE) |> setNames(method_names)
+  se_1 <- data[D_majority == 1, ] |> colMeans(na.rm = TRUE) |> stats::setNames(method_names)
 
   # Estimate individual method sp wrt majority classification
-  sp_1 <- 1 - (data[D_majority == 0, ] |> colMeans(na.rm = TRUE) |> setNames(method_names))
+  sp_1 <- 1 - (data[D_majority == 0, ] |> colMeans(na.rm = TRUE) |> stats::setNames(method_names))
 
   return(
     list(prev_1 = prev_1,
@@ -261,14 +260,12 @@ pollinate_ML_binary <-
 #' @param params A named list of population parameters, i.e. the "correct" values. This is used when the data are simulated and/or when the true values of the results statistics are known.
 #'
 #' @return A list of plots
-#' @export
 #' @import ggplot2
 #' @import dplyr
 #' @import tidyr
 #' @importFrom purrr pluck
 #' @import tibble
 #'
-#' @examples
 #'
 
 plot_ML_binary <-
@@ -285,9 +282,9 @@ plot_ML_binary <-
 
   # create long data frame of sequence of se/sp estimates
     se_sp_data <-
-      left_join(
-        as.data.frame(ML_est@prog$se) %>% mutate(iter = row_number()) %>% pivot_longer(!iter, names_to = "method", values_to = "se"),
-        as.data.frame(ML_est@prog$sp) %>% mutate(iter = row_number()) %>% pivot_longer(!iter, names_to = "method", values_to = "sp"),
+      dplyr::left_join(
+        as.data.frame(ML_est@prog$se) %>% dplyr::mutate(iter = row_number()) %>% tidyr::pivot_longer(!iter, names_to = "method", values_to = "se"),
+        as.data.frame(ML_est@prog$sp) %>% dplyr::mutate(iter = row_number()) %>% tidyr::pivot_longer(!iter, names_to = "method", values_to = "sp"),
         by = join_by(iter, method)
       )
 
@@ -306,16 +303,16 @@ plot_ML_binary <-
   # create se/sp line plot showing change in estimates over time
     se_sp_plot <-
       se_sp_data %>%
-        ggplot(aes(x = sp, y = se, group = method, color = method)) +
-        geom_line() +
-        geom_point(data = se_sp_result, aes(shape = shape)) +
-        scale_shape_manual(values = c(16, 1)) +
-        geom_line(data = se_sp_result, lty = 2) +
-        coord_fixed() +
-        scale_y_continuous("Sensitivity", limits = c(0, 1), breaks = seq(0, 1, 0.1), expand = c(0, 0)) +
-        scale_x_continuous("Specificity", limits = c(0, 1), breaks = seq(0, 1, 0.1), expand = c(0, 0)) +
-        scale_color_brewer(palette = "Set1") +
-        theme(panel.background = element_blank(),
+      ggplot2::ggplot(ggplot2::aes(x = sp, y = se, group = method, color = method)) +
+      ggplot2::geom_line() +
+      ggplot2::geom_point(data = se_sp_result, ggplot2::aes(shape = shape)) +
+      ggplot2::scale_shape_manual(values = c(16, 1)) +
+      ggplot2::geom_line(data = se_sp_result, lty = 2) +
+      ggplot2::coord_fixed() +
+      ggplot2::scale_y_continuous("Sensitivity", limits = c(0, 1), breaks = seq(0, 1, 0.1), expand = c(0, 0)) +
+      ggplot2::scale_x_continuous("Specificity", limits = c(0, 1), breaks = seq(0, 1, 0.1), expand = c(0, 0)) +
+      ggplot2::scale_color_brewer(palette = "Set1") +
+      ggplot2::theme(panel.background = element_blank(),
               panel.grid = element_line(color = "gray80"),
               axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 
@@ -326,27 +323,27 @@ plot_ML_binary <-
       data.frame(
         D = as.character(as.numeric(params$D)),
         group = as.character(names(params$D))) %>%
-      mutate(D = paste("Class", D))
+      dplyr::mutate(D = paste("Class", D))
 
   # create progress plots
     list_prog_plots <-
       lapply(prog_plots, function(j){
-        df_plot <- as.data.frame(pluck(ML_est, "prog", j)) %>%
-          mutate(iter = row_number())
+        df_plot <- as.data.frame(purrr::pluck(ML_est, "prog", j)) %>%
+          dplyr::mutate(iter = row_number())
         df_plot %>%
-          pivot_longer(!iter, names_to = "group", values_to = "value") %>%
-          left_join(dis_data, by = "group") %>%
-          replace_na(list(D = "Class unknown")) %>%
-          mutate(color_col = case_when( # define which column to color lines by
+          tidyr::pivot_longer(!iter, names_to = "group", values_to = "value") %>%
+          dplyr::left_join(dis_data, by = "group") %>%
+          tidyr::replace_na(list(D = "Class unknown")) %>%
+          dplyr::mutate(color_col = dplyr::case_when( # define which column to color lines by
             j %in% c("A2", "B2", "qk") ~ D,
             j %in% c("se", "sp") ~ group,
             j %in% c("prev") ~ "Estimate")) %>%
-          ggplot(aes(x = iter, y = value, group = group, color = color_col)) +
-          geom_line() +
-          scale_y_continuous(j, limits = c(0, 1), breaks = seq(0, 1, 0.1), expand = c(0, 0)) +
-          scale_x_continuous("Iteration", limits = c(0, ML_est@iter)) +
-          scale_color_brewer("", palette = "Set1", na.value = "gray30", drop = FALSE) +
-          theme(panel.background = element_blank(),
+          ggplot2::ggplot(ggplot2::aes(x = iter, y = value, group = group, color = color_col)) +
+          ggplot2::geom_line() +
+          ggplot2::scale_y_continuous(j, limits = c(0, 1), breaks = seq(0, 1, 0.1), expand = c(0, 0)) +
+          ggplot2::scale_x_continuous("Iteration", limits = c(0, ML_est@iter)) +
+          ggplot2::scale_color_brewer("", palette = "Set1", na.value = "gray30", drop = FALSE) +
+          ggplot2::theme(panel.background = element_blank(),
                 panel.grid = element_line(color = "gray80"),
                 axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
                 legend.position = "bottom")
