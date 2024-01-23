@@ -1,10 +1,10 @@
 To Do:
 - Plot functions
   x Binary
-  - Ordinal
+  x Ordinal
   - Continuous
 - Summary functions
-x S4?
+x S4
 x Standardize output
 - Generalize ord and cont to include NA
 - Comment
@@ -12,6 +12,10 @@ x Standardize output
 - Citation
 - Documentation
 x Observation names
-- Bootstrap function(s)
+x Bootstrap function(s)
 x Verbose arg?
 x check init arg for correctly named elements
+
+Bugs:
+- binary naming bug on (at least) se_sp_plot
+- color brewer palette limit

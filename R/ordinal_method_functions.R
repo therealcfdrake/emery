@@ -63,11 +63,11 @@ generate_multimethod_ordinal <-
         n_level = n_level,
         n_obs = dis$n_obs,
         prev = dis$prev,
-        D = setNames(dis$D, obs_names),
+        D = stats::setNames(dis$D, obs_names),
         pmf_pos = pmf_pos,
         pmf_neg = pmf_neg,
-        se_observed = se_observed,
-        sp_observed = sp_observed,
+        se_observed = se_observed, # keep?
+        sp_observed = sp_observed, # keep?
         method_names = method_names,
         level_names = level_names,
         obs_names = obs_names
@@ -124,7 +124,11 @@ estimate_ML_ordinal <-
       tmp_y_k <- matrix(nrow = n_level, ncol = n_method, dimnames = list(level_names, method_names))
       for(j in 1:n_level){
         for(i in 1:n_method){
-          tmp_y_k[j, i] <- as.numeric(t_k[k, i] == j)
+          tmp_y_k[j, i] <-
+            as.numeric(
+              (!is.na(t_k[k, i])) & # addition to tolerate missing values
+                t_k[k, i] == j # original code
+              )
         }
       }
       y_k[[k]] <- tmp_y_k
@@ -170,7 +174,7 @@ estimate_ML_ordinal <-
   list_phi_1ij <- list()
   list_phi_0ij <- list()
   list_A_i <- list()
-  list_y_k <- list(y_k) # does not change
+  list_y_k <- y_k # does not change
   list_g_1 <- list()
   list_g_0 <- list()
   list_q_k1 <- list()
@@ -404,11 +408,11 @@ plot_ML_ordinal <-
 
     # create progress plots
     # create data frame of disease state and observation name for coloring progress plots
-    dis_data <- # disease status
-      data.frame(
-        D = as.character(as.numeric(params$D)),
-        group = as.character(names(params$D))) %>%
-      dplyr::mutate(D = paste("Class", D))
+    # dis_data <- # disease status
+    #   data.frame(
+    #     D = as.character(as.numeric(params$D)),
+    #     group = obs_names) %>%
+    #   dplyr::mutate(D = paste("Class", D))
 
     q_k1_plot <- plot_q_kd("q_k1")
     q_k0_plot <- plot_q_kd("q_k0")
@@ -417,11 +421,14 @@ plot_ML_ordinal <-
 
     q_k1_hist <-
       data.frame(q_k1_est = ML_est@results$q_k1_est) %>%
+      # dplyr::mutate(D = case_when(
+      #   is.null(params$D), NA_character_,
+      #   as.character(as.numeric(params$D)))) %>% ### FIX THIS ####
       dplyr::mutate(D = ifelse(
         is.null(params$D), NA_character_,
         as.character(as.numeric(params$D)))) %>% ### FIX THIS ####
       ggplot2::ggplot(ggplot2::aes(x = q_k1_est, fill = D)) +
-      ggplot2::geom_histogram(binwidth = 0.01, boundary = -1e-10) +
+      ggplot2::geom_histogram(binwidth = 0.025, boundary = -1e-10) +
       ggplot2::scale_y_continuous("Observations", limits = c(0, NA), expand = c(0, 0.5)) +
       ggplot2::scale_x_continuous(breaks = seq(0, 1, 0.05), expand = c(0, 0), limits = c(-0.02, 1.02)) +
       ggplot2::scale_fill_brewer("", palette = "Set1", na.value = "gray30", drop = FALSE) +
@@ -442,8 +449,9 @@ plot_ML_ordinal <-
         tidyr::pivot_longer(c(-level, -d)) %>%
       ggplot2::ggplot(ggplot2::aes(x = name, y = value, fill = level)) +
       ggplot2::geom_col(width = 1, alpha = 0.75, color = "black") +
-      ggplot2::scale_y_continuous("p", breaks = seq(0, 1, 0.10), expand = c(0, 0), limits = c(0, 1)) +
+      ggplot2::scale_y_continuous("p", breaks = seq(0, 1, 0.10), expand = c(0, 0)) +
       ggplot2::scale_x_discrete("Method", expand = c(0, 0)) +
+      ggplot2::coord_cartesian(ylim = c(0, 1)) +
       ggplot2::scale_fill_brewer(palette = "Set1") +
       ggplot2::facet_grid(d ~ .) +
       ggplot2::theme(panel.background = ggplot2::element_blank(),

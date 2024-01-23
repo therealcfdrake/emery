@@ -30,6 +30,9 @@ generate_multimethod_continuous <-
     obs_names = NULL
     ){
 
+  if(is.null(method_names)){method_names <- name_thing("method", n_method)}
+  if(is.null(obs_names)){obs_names <- name_thing("obs", n_obs)}
+
   dis <- define_disease_state(D, n_obs, prev)
 
   X <- mvtnorm::rmvnorm(n = dis$pos, mean = mu_i1, sigma = sigma_i1)
@@ -37,12 +40,18 @@ generate_multimethod_continuous <-
 
   generated_data <- rbind(X, Y)
 
+  dimnames(generated_data) <- list(obs_names, method_names)
+  names(mu_i1) <- method_names
+  dimnames(sigma_i1) <- list(method_names, method_names)
+  names(mu_i0) <- method_names
+  dimnames(sigma_i0) <- list(method_names, method_names)
+
   params <-
     list(
       n_method = n_method,
       n_obs = dis$n_obs,
       prev = dis$prev,
-      D = dis$D,
+      D = stats::setNames(dis$D, obs_names),
       mu_i1 = mu_i1,
       sigma_i1 = sigma_i1,
       mu_i0 = mu_i0,
@@ -103,7 +112,7 @@ estimate_ML_continuous <-
   calc_next_sigma_d <- function(z_kd_m, mu_id_m){
       # returns covariance matrix sigma_d(m+1) estimate
       n_method <- length(mu_id_m)
-      sigma_d <- matrix(nrow = n_method, ncol = n_method)
+      sigma_d <- matrix(nrow = n_method, ncol = n_method, dimnames = list(method_names, method_names))
       for(i in 1:n_method){
         for(j in 1:i){
           sigma_d[i, j] <-
@@ -230,6 +239,9 @@ pollinate_ML_continuous <-
            q_seeds = c((1 - prev) / 2, 1 - (prev / 2)),
            high_pos = TRUE){
 
+  method_names <- if(is.null(colnames(t_k))){name_thing("method", ncol(t_k))}else{colnames(t_k)}
+  obs_names <- if(is.null(rownames(t_k))){name_thing("obs", nrow(t_k))}else{rownames(t_k)}
+
   # adjust seeds depending on whether high (default) or low values are associated with "positive" diagnosis
   q_seeds <- sort(q_seeds, decreasing = high_pos)
 
@@ -241,6 +253,11 @@ pollinate_ML_continuous <-
   sigma_i1_1 <- diag(mu_i1_1 ^ 2)
   sigma_i0_1 <- diag(mu_i0_1 ^ 2)
 
+  names(mu_i1_1) <- method_names
+  dimnames(sigma_i1_1) <- list(method_names, method_names)
+  names(mu_i0_1) <- method_names
+  dimnames(sigma_i0_1) <- list(method_names, method_names)
+
   return(
     list(
       prev_1 = prev,
@@ -251,3 +268,40 @@ pollinate_ML_continuous <-
   )
 
 }
+
+
+plot_ML_continuous <-
+  function(
+    ML_est,
+    params = list(prev_1 = NULL, mu_i1_1 = NULL, sigma_i1_1 = NULL, mu_i0_1 = NULL, sigma_i0_1 = NULL, D = NULL, obs_names = NULL)){
+
+    # internal functions
+    calc_pr_i <- function(b){
+      phi_dij <- if(b){ML_est@results$phi_1ij_est}else{ML_est@results$phi_0ij_est}
+      sapply(
+        1:n_level,
+        function(l) colSums(matrix(phi_dij[l:n_level, ], ncol = n_method)))
+    }
+
+    n_method <- ncol(ML_est@results$A_j_est)
+    method_names <- colnames(ML_est@results$A_j_est)
+    n_obs <- length(ML_est@results$q_k1_est)
+    if(is.null(params$obs_names)){obs_names <- name_thing("obs", n_obs)}else{obs_names <- params$obs_names}
+
+
+    fpr_i <- calc_pr_i(FALSE)
+    tpr_i <- calc_pr_i(TRUE)
+
+    dimnames(fpr_i) <- list(method_names, level_names)
+    dimnames(tpr_i) <- list(method_names, level_names)
+
+    ROC_data <-
+      dplyr::left_join(
+        fpr_i_long <- as.data.frame(as.table(fpr_i)),
+        tpr_i_long <- as.data.frame(as.table(tpr_i)),
+        by = c("Var1", "Var2")
+      )
+
+
+
+    }

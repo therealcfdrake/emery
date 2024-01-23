@@ -228,7 +228,7 @@ estimate_ML_binary <-
 pollinate_ML_binary <-
   function(data){
 
-  method_names <- if(is.null(names(data))){name_thing("method", ncol(data))}else{names(data)}
+  method_names <- if(is.null(colnames(data))){name_thing("method", ncol(data))}else{colnames(data)}
 
   n_obs <- nrow(data)
 
@@ -276,7 +276,7 @@ plot_ML_binary <-
   prog_plots <- c("prev", "se", "sp", "A2", "B2", "qk")
 
   n_method <- length(ML_est@results$se_est)
-
+  method_names <- colnames(ML_est@results$se_est)
 
   ### Se/Sp scatter plot
 
@@ -291,7 +291,7 @@ plot_ML_binary <-
   # create data frame containing final estimate and true value, if known. This is for assessing accuracy of estimates in simulations when true value is known.
     se_sp_result <-
       data.frame(
-        method = rep(colnames(ML_est@results$se_est), 2),
+        method = rep(method_names, 2),
         se = c(ML_est@results$se_est, params$se) %>% rep(2 * n_method / length(.)),
         sp = c(ML_est@results$sp_est, params$sp) %>% rep(2 * n_method / length(.)),
         shape = c(
@@ -315,6 +315,8 @@ plot_ML_binary <-
       ggplot2::theme(panel.background = element_blank(),
               panel.grid = element_line(color = "gray80"),
               axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+
+
 
     ### ML progress plots
 
