@@ -2,7 +2,7 @@
 % Please edit documentation in R/classes_and_methods.R
 \name{show,MultiMethodMLEstimate-method}
 \alias{show,MultiMethodMLEstimate-method}
-\title{Print Final Results Stored in MultiMethodMLEstimate S4 Objects}
+\title{Print final results stored in MultiMethodMLEstimate S4 object}
 \usage{
 \S4method{show}{MultiMethodMLEstimate}(object)
 }
@@ -10,5 +10,5 @@
 \item{object}{MultiMethodMLEstimate.}
 }
 \description{
-Print Final Results Stored in MultiMethodMLEstimate S4 Objects
+Print final results stored in MultiMethodMLEstimate S4 object
 }

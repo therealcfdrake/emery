@@ -2,16 +2,20 @@
 % Please edit documentation in R/classes_and_methods.R
 \name{plot,MultiMethodMLEstimate-method}
 \alias{plot,MultiMethodMLEstimate-method}
-\title{Plot Results Stored in MultiMethodMLEstimate S4 Objects}
+\title{Call \code{plot_ML} on MultiMethodMLEstimate S4 objects}
 \usage{
 \S4method{plot}{MultiMethodMLEstimate}(x, y, ...)
 }
 \arguments{
-\item{x}{MultiMethodMLEstimate.}
+\item{x}{MultiMethodMLEstimate S4 object}
+
+\item{y}{not used}
+
+\item{...}{Additional arguments}
 }
 \value{
-a list of ggplot2 plots
+A list of ggplot2 plots
 }
 \description{
-Plot Results Stored in MultiMethodMLEstimate S4 Objects
+Call \code{plot_ML} on MultiMethodMLEstimate S4 objects
 }

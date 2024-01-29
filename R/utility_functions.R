@@ -5,7 +5,8 @@
 #' @param n an integer number of unique names to create
 #'
 #' @return a vector of unique names
-#'
+#' @importFrom stringr str_pad
+
 name_thing <-
   function(thing = "", n = 1){
 
@@ -15,12 +16,10 @@ name_thing <-
 
 #' Define the True disease state of a simulated sample
 #'
-#' @param D True disease state
-#' @param n_obs integer number of observations
-#' @param prev prevalence of positive observations in population
+#' @inheritParams generate_multimethod_data
 #'
 #' @return A list of features defining the true disease status of each observation
-#'
+
 define_disease_state <-
   function(D = NULL, n_obs = NULL, prev = NULL){
 
@@ -51,4 +50,24 @@ define_disease_state <-
 
   }
 
+#' Censor data randomly rowwise
+#'
+#' @inheritParams generate_multimethod_data
+#' @export
+
+censor_data <- function(
+    n_obs = dis$n_obs,
+    first_reads_all = first_reads_all,
+    n_method_subset = n_method_subset,
+    n_method = n_method){
+
+  lapply(1:n_obs, function(i)
+    if(!first_reads_all){
+      sample(c(rep(1, n_method_subset), rep(NA, n_method - n_method_subset)), n_method, replace = FALSE)
+    }else{
+      c(1, sample(c(rep(1, n_method_subset - 1), rep(NA, n_method - n_method_subset)), n_method - 1, replace = FALSE))
+    }
+  ) |> do.call(what = rbind, args = _)
+
+}
 

@@ -1,8 +1,6 @@
 #' Create data sets which simulate paired measurements of multiple methods
 #'
-#' @inheritDotParams generate_multimethod_binary
-#' @inheritDotParams generate_multimethod_ordinal
-#' @inheritDotParams generate_multimethod_continuous
+#' @order 1
 #' @param type A string specifying the data type of the methods under evaluation
 #' @param n_method An integer representing the number of methods to simulate
 #' @param n_obs An integer representing the number of observations to simulate
@@ -10,10 +8,10 @@
 #' @param D Optional binary vector representing the true classification of each observation
 #' @param method_names Optional vector of names used to identify each method
 #' @param obs_names Optional vector of names used to identify each observation
-#' @param ...
-#'
+#' @param ... Additional parameters
 #' @return A list containing a simulated data set and the parameters used to create it
 #' @export
+#' @example man/examples/ML_example.R
 
 generate_multimethod_data <-
   function(
@@ -35,17 +33,17 @@ generate_multimethod_data <-
 
 #' Estimate maximum likelihood accuracy statistics by expectation maximization
 #'
-#' @inheritDotParams estimate_ML_ordinal
 #' @param type A string specifying the data type of the methods under evaluation
-#' @param data An n_obs by n_method matrix containing the observed values for each method. If dimensions are named, row names will be used for obs_names, and column names will be used for method_names
+#' @param data An `n_obs` by `n_method` matrix containing the observed values for each method. If dimensions are named, row names will be used for obs_names, and column names will be used for method_names
 #' @param init An optional list of initial values used to seed the EM algorithm. If initial values are not provided, a function will be called on the data to estimate starting values.
 #' @param max_iter The maximum number of EM algorithm iterations to compute before reporting a result.
 #' @param tol The minimum change in statistic estimates needed to continue iterating the EM algorithm.
 #' @param save_progress A logical indication whether to save interim calculations used in the EM algorithm.
-#' @param ...
-#'
-#' @return a MultiMethodMLEstimate class S4 object containing ML accuracy statistics by EM
+#' @param ... Additional arguments
+#' @order 1
+#' @return A MultiMethodMLEstimate class S4 object containing ML accuracy statistics by EM
 #' @export
+#' @example man/examples/ML_example.R
 
 estimate_ML <-
   function(
@@ -64,14 +62,16 @@ estimate_ML <-
     )
   }
 
-#' Create plots of ML estimation process
+#' Create plots visualizing the ML estimation process.
 #'
-#' @param type A string specifying the data type of the methods under evaluation
-#' @param ML_est A MultiMethodEstimate class object
-#' @param params An optional list of population parameters
-#'
-#' @return a list of ggplot2 plots
+#' @param ML_est A MultiMethodMLEstimate class object
+#' @param params A list of population parameters. This is mostly used to evaluate
+#' results from a simulation where the target parameters are already known, but can be used to visualize
+#' results with respect to some True value.
+#' @order 1
+#' @return a list of ggplot2 plots.
 #' @export
+#' @example man/examples/ML_example.R
 
 plot_ML <-
   function(
@@ -85,16 +85,38 @@ plot_ML <-
     )
   }
 
+#' Generate seed values for EM algorithm
+#'
+#' @inheritParams estimate_ML
+#' @param ... Additional arguments
+#' @order 1
+#' @return a list of EM algorithm initialization values
+#' @export
+
+pollinate_ML <-
+  function(
+    type = c("binary", "ordinal", "continuous"),
+    data,
+    ...){
+    type <- match.arg(type)
+    switch (type,
+            binary = pollinate_ML_binary(type, data, ...),
+            ordinal = pollinate_ML_ordinal(type, data, ...),
+            continuous = pollinate_ML_continuous(type, data, ...)
+    )
+  }
+
 
 #' Bootstrap Accuracy Statistic Estimation for Multimethod Data
 #'
-#' @inheritDotParams estimate_ML
+#' @inheritParams estimate_ML
+#'
 #' @param n_boot number of bootstrap estimates to compute
 #' @param seed optional seed for RNG
-#'
 #' @return a list containing accuracy estimates `v` and the parameters used
 #' @export
-#'
+#' @example man/examples/bootstrap_example.R
+
 boot_ML <-
   function(
     type = c("binary", "ordinal", "continuous"),
@@ -102,7 +124,8 @@ boot_ML <-
     n_boot = 100,
     max_iter = 1000,
     tol = 1e-7,
-    seed = NULL){
+    seed = NULL,
+    ...){
 
   if(!is.null(seed)) set.seed(seed)
 
@@ -115,7 +138,7 @@ boot_ML <-
     v_star <-
     lapply(1:n_boot, function(b){
       tmp <- data[sample(n_obs, n_obs, replace = TRUE), ]
-      estimate_ML(type, tmp, save_progress = FALSE)
+      estimate_ML(type, tmp, save_progress = FALSE)@results
     })
 
     return(

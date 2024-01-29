@@ -1,0 +1,22 @@
+utils::globalVariables(
+  c(
+    "dis",
+    "iter",
+    "method",
+    "sp",
+    "se",
+    "shape",
+    "value",
+    "group",
+    "color_col",
+    "x",
+    "label",
+    "fpr",
+    "tpr",
+    "z_k1_est",
+    "level",
+    "q_k1_est",
+    "d",
+    "name",
+    "qk_est")
+  )

@@ -10,28 +10,47 @@ boot_ML(
   n_boot = 100,
   max_iter = 1000,
   tol = 1e-07,
-  seed = NULL
+  seed = NULL,
+  ...
 )
 }
 \arguments{
+\item{type}{A string specifying the data type of the methods under evaluation}
+
+\item{data}{An \code{n_obs} by \code{n_method} matrix containing the observed values for each method. If dimensions are named, row names will be used for obs_names, and column names will be used for method_names}
+
 \item{n_boot}{number of bootstrap estimates to compute}
+
+\item{max_iter}{The maximum number of EM algorithm iterations to compute before reporting a result.}
+
+\item{tol}{The minimum change in statistic estimates needed to continue iterating the EM algorithm.}
 
 \item{seed}{optional seed for RNG}
 
-\item{...}{
-  Arguments passed on to \code{\link[=estimate_ML]{estimate_ML}}
-  \describe{
-    \item{\code{type}}{A string specifying the data type of the methods under evaluation}
-    \item{\code{data}}{An n_obs by n_method matrix containing the observed values for each method. If dimensions are named, row names will be used for obs_names, and column names will be used for method_names}
-    \item{\code{init}}{An optional list of initial values used to seed the EM algorithm. If initial values are not provided, a function will be called on the data to estimate starting values.}
-    \item{\code{max_iter}}{The maximum number of EM algorithm iterations to compute before reporting a result.}
-    \item{\code{tol}}{The minimum change in statistic estimates needed to continue iterating the EM algorithm.}
-    \item{\code{save_progress}}{A logical indication whether to save interim calculations used in the EM algorithm.}
-  }}
+\item{...}{Additional arguments}
 }
 \value{
 a list containing accuracy estimates \code{v} and the parameters used
 }
 \description{
 Bootstrap Accuracy Statistic Estimation for Multimethod Data
+}
+\examples{
+# Set seed for this example
+set.seed(11001101)
+
+# Generate data for 4 binary methods
+my_sim <- generate_multimethod_data(
+  "binary",
+  n_obs = 75,
+  n_method = 4,
+  se = c(0.87, 0.92, 0.79, 0.95),
+  sp = c(0.85, 0.93, 0.94, 0.80),
+  method_names = c("alpha", "beta", "gamma", "delta"))
+
+# Bootstrap ML results
+boot_ex <- boot_ML(
+  "binary",
+  data = my_sim$generated_data,
+  n_boot = 20)
 }

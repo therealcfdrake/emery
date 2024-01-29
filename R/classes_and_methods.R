@@ -1,5 +1,8 @@
+
+#' S4 object for storing the results of multi-method ML accuracy estimates
 #' @slot results a list of estimated accuracy statistics
-#'
+#' @slot names a list containing the names of various dimensions
+#' @slot data a copy of the data used to generate the estimate
 #' @slot iter an integer number of iterations used by EM algorithm
 #' @slot prog a list of interim statistic estimates
 #' @slot type a string describing the data type
@@ -10,19 +13,23 @@ setClass(
   "MultiMethodMLEstimate",
   slots = c(
     results = "list",
+    data = "matrix",
+    names = "list",
     iter = "numeric",
     prog = "list",
     type = "character"
   ),
   prototype = list(
     results = list(),
+    data = matrix(),
+    names = list(),
     iter = 0,
     prog = list(),
     type = NA_character_
   )
 )
 
-#' Print Final Results Stored in MultiMethodMLEstimate S4 Objects
+#' Print final results stored in MultiMethodMLEstimate S4 object
 #'
 #' @param object MultiMethodMLEstimate.
 #'
@@ -36,11 +43,13 @@ setMethod(
     }
   )
 
-#' Plot Results Stored in MultiMethodMLEstimate S4 Objects
+#' Call `plot_ML` on MultiMethodMLEstimate S4 objects
 #'
-#' @param x MultiMethodMLEstimate.
+#' @param x MultiMethodMLEstimate S4 object
+#' @param y not used
+#' @param ... Additional arguments
 #'
-#' @return a list of ggplot2 plots
+#' @return A list of ggplot2 plots
 #' @export
 #'
 setMethod(

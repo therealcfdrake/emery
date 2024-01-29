@@ -6,13 +6,12 @@
 
 ### Build Sample Data Set
 
-#' Generate data set for multiple continuous methods measuring the same binary variable
-#'
-#' @inheritParams generate_multimethod_data
+#' @rdname generate_multimethod_data
+#' @order 4
+#' @export
 #' @param mu_i1,mu_i0 Used for continuous methods. Vectors of length n_method of the method mean values for positive (negative) observations
 #' @param sigma_i1,sigma_i0 Used for continuous methods. Covariance matrices of method positive (negative) observations
 #'
-#' @return list containing generated data and input parameters
 #' @importFrom mvtnorm rmvnorm
 #'
 
@@ -27,7 +26,9 @@ generate_multimethod_continuous <-
     mu_i0 = rep(10, n_method),
     sigma_i0 = diag(n_method),
     method_names = NULL,
-    obs_names = NULL
+    obs_names = NULL,
+    n_method_subset = n_method,
+    first_reads_all = FALSE
     ){
 
   if(is.null(method_names)){method_names <- name_thing("method", n_method)}
@@ -38,7 +39,14 @@ generate_multimethod_continuous <-
   X <- mvtnorm::rmvnorm(n = dis$pos, mean = mu_i1, sigma = sigma_i1)
   Y <- mvtnorm::rmvnorm(n = dis$neg, mean = mu_i0, sigma = sigma_i0)
 
-  generated_data <- rbind(X, Y)
+  subset_matrix <-
+    censor_data(
+      n_obs = dis$n_obs,
+      first_reads_all = first_reads_all,
+      n_method_subset = n_method_subset,
+      n_method = n_method)
+
+  generated_data <- rbind(X, Y) * subset_matrix
 
   dimnames(generated_data) <- list(obs_names, method_names)
   names(mu_i1) <- method_names
@@ -67,11 +75,10 @@ generate_multimethod_continuous <-
   )
 }
 
-#' Estimate accuracy statistics and prevalence by ML
-#'
-#' @inheritParams estimate_ML
-#'
-#' @return A list containing the final calculated values.
+
+#' @rdname estimate_ML
+#' @order 3
+#' @export
 #' @importFrom stats setNames pnorm
 #'
 estimate_ML_continuous <-
@@ -130,9 +137,13 @@ estimate_ML_continuous <-
     stats::setNames(stats::pnorm(eta_j_m), method_names)
   }
 
-  t_k <- data
+  t_k <- as.matrix(data)
   n_method <- ncol(t_k)
+  n_obs <- nrow(t_k)
   method_names <- if(is.null(colnames(t_k))){name_thing("method", n_method)}else{colnames(t_k)}
+  obs_names <- if(is.null(rownames(t_k))){name_thing("obs", n_obs)}else{rownames(t_k)}
+
+  dimnames(t_k) <- list(obs_names, method_names)
 
   if(!all(c("prev_1", "mu_i1_1", "sigma_i1_1", "mu_i0_1", "sigma_i0_1") %in% names(init)) |
      any(sapply(init, is.null))
@@ -200,6 +211,10 @@ estimate_ML_continuous <-
           A_j_est = A_j_m,
           z_k1_est = z_k1_m,
           z_k0_est = z_k0_m),
+        names = list(
+          method_names = method_names,
+          obs_names = obs_names),
+        data = t_k,
         iter = iter,
         type = "continuous")
 
@@ -224,34 +239,33 @@ estimate_ML_continuous <-
 
 ### Starting Value Generator
 
-#' Create Seed Values for EM Algorithm
-#'
-#' @param t_k A data set of `n_obs` rows and `n_method` columns
+#' @rdname pollinate_ML
+#' @order 4
+#' @export
 #' @param prev A double between 0-1 representing the proportion of positives in the population
-#' @param q_seeds A vector of length 2 representing the quantiles at which the two groups are assumed to be centered
-#' @param high_pos A logical indicating whether larger values are considered "positive"
-#'
-#' @return A list of initial values for EM algorithm
+#' @param q_seeds Used for continuous methods. A vector of length 2 representing the quantiles at which the two groups are assumed to be centered
+#' @param high_pos Used for continuous methods. A logical indicating whether larger values are considered "positive"
+#' @importFrom stats quantile
 
 pollinate_ML_continuous <-
-  function(t_k,
+  function(data,
            prev = 0.5,
            q_seeds = c((1 - prev) / 2, 1 - (prev / 2)),
            high_pos = TRUE){
 
-  method_names <- if(is.null(colnames(t_k))){name_thing("method", ncol(t_k))}else{colnames(t_k)}
-  obs_names <- if(is.null(rownames(t_k))){name_thing("obs", nrow(t_k))}else{rownames(t_k)}
+  method_names <- if(is.null(colnames(data))){name_thing("method", ncol(data))}else{colnames(data)}
+  obs_names <- if(is.null(rownames(data))){name_thing("obs", nrow(data))}else{rownames(data)}
 
   # adjust seeds depending on whether high (default) or low values are associated with "positive" diagnosis
   q_seeds <- sort(q_seeds, decreasing = high_pos)
 
-  muD_mat <- apply(t_k, MARGIN = 2, quantile, q_seeds)
+  muD_mat <- apply(data, MARGIN = 2, stats::quantile, q_seeds)
 
   mu_i1_1 <- unlist(muD_mat[1, ])
   mu_i0_1 <- unlist(muD_mat[2, ])
 
-  sigma_i1_1 <- diag(mu_i1_1 ^ 2)
-  sigma_i0_1 <- diag(mu_i0_1 ^ 2)
+  sigma_i1_1 <- diag(mu_i1_1 / 2)
+  sigma_i0_1 <- diag(mu_i0_1 / 2)
 
   names(mu_i1_1) <- method_names
   dimnames(sigma_i1_1) <- list(method_names, method_names)
@@ -270,38 +284,133 @@ pollinate_ML_continuous <-
 }
 
 
+
+#' @rdname plot_ML
+#' @order 4
+#' @export
+#' @import dplyr
+#' @import ggplot2
+#' @importFrom stats setNames
+#' @importFrom purrr pluck
 plot_ML_continuous <-
   function(
     ML_est,
-    params = list(prev_1 = NULL, mu_i1_1 = NULL, sigma_i1_1 = NULL, mu_i0_1 = NULL, sigma_i0_1 = NULL, D = NULL, obs_names = NULL)){
+    params = list(
+      prev_1 = NULL,
+      mu_i1_1 = NULL,
+      sigma_i1_1 = NULL,
+      mu_i0_1 = NULL,
+      sigma_i0_1 = NULL,
+      D = NULL)){
 
     # internal functions
-    calc_pr_i <- function(b){
-      phi_dij <- if(b){ML_est@results$phi_1ij_est}else{ML_est@results$phi_0ij_est}
-      sapply(
-        1:n_level,
-        function(l) colSums(matrix(phi_dij[l:n_level, ], ncol = n_method)))
+    calc_pr_i <- function(b){ # (T/F) Positive Rate calculator
+      z_kd <- if(b){ML_est@results$z_k1_est}else{ML_est@results$z_k0_est}
+      apply(ML_est@data, 2, function(column){
+        sapply(column, function(row, column){
+          sum(z_kd[which(column >= row)])
+        }, column = column)}) / sum(z_kd)
+    }
+    plot_ROC <- function(){
+
+      AUC_data <-
+        ML_est@results$A_j_est |>
+        as.list() |>
+        data.frame() |>
+        tidyr::pivot_longer(everything(), names_to = "method", values_to = "value") |>
+        dplyr::mutate(label = paste0(method, ": ", sprintf("%0.3f", value))) |>
+        dplyr::pull(label) |>
+        paste(collapse = "\n")
+
+      AUC_label <- paste0("AUC\n", AUC_data)
+
+      ROC_data |>
+        dplyr::bind_rows(expand.grid(method = method_names, level = "", fpr = 0, tpr = 0)) |>
+        ggplot2::ggplot(ggplot2::aes(x = fpr, y = tpr, group = method, color = method)) +
+        ggplot2::geom_path() +
+        ggplot2::geom_abline(slope = 1, lty = 2, color = "gray50") +
+        ggplot2::annotate("text", x = 0.6, y = 0.1, label = AUC_label, hjust = 0, vjust = 0) +
+        ggplot2::scale_y_continuous("TPR", limits = c(0, 1), breaks = seq(0, 1, 0.1), expand = c(0, 0)) +
+        ggplot2::scale_x_continuous("FPR", limits = c(0, 1), breaks = seq(0, 1, 0.1), expand = c(0, 0)) +
+        ggplot2::scale_color_brewer("", palette = "Set1", na.value = "gray30", drop = FALSE) +
+        ggplot2::coord_fixed() +
+        ggplot2::theme(panel.background = ggplot2::element_blank(),
+                       panel.grid = ggplot2::element_line(color = "gray80"),
+                       axis.text.x = ggplot2::element_text(angle = 90, hjust = 1, vjust = 0.5),
+                       legend.position = "bottom") +
+        ggplot2::ggtitle("ROC Curves")
+    }
+    plot_z_kd <- function(z_kd){
+      do.call(rbind, purrr::pluck(ML_est, "prog", z_kd)) |>
+        as.data.frame() |>
+        stats::setNames(obs_names) |>
+        dplyr::mutate(iter = row_number()) |>
+        tidyr::pivot_longer(!iter, names_to = "group", values_to = "value") |>
+        dplyr::left_join(dis_data, by = "group") |>
+        tidyr::replace_na(list(true_D = "Class unknown")) |>
+        ggplot2::ggplot(ggplot2::aes(x = iter, y = value, group = group, color = true_D)) +
+        ggplot2::geom_line() +
+        ggplot2::scale_y_continuous(z_kd, limits = c(0, 1), breaks = seq(0, 1, 0.1), expand = c(0, 0)) +
+        ggplot2::scale_x_continuous("Iteration", limits = c(0, ML_est@iter)) +
+        ggplot2::scale_color_brewer("", palette = "Set1", na.value = "gray30", drop = FALSE) +
+        ggplot2::theme(panel.background = ggplot2::element_blank(),
+                       panel.grid = ggplot2::element_line(color = "gray80"),
+                       axis.text.x = ggplot2::element_text(angle = 90, hjust = 1, vjust = 0.5),
+                       legend.position = "bottom")
     }
 
-    n_method <- ncol(ML_est@results$A_j_est)
-    method_names <- colnames(ML_est@results$A_j_est)
-    n_obs <- length(ML_est@results$q_k1_est)
-    if(is.null(params$obs_names)){obs_names <- name_thing("obs", n_obs)}else{obs_names <- params$obs_names}
-
+    method_names <- ML_est@names$method_names
+    n_method <- length(method_names)
+    obs_names <- ML_est@names$obs_names
+    n_obs <- length(obs_names)
+    if(is.null(params$D)){true_D <- NA}else{true_D <- params$D}
 
     fpr_i <- calc_pr_i(FALSE)
     tpr_i <- calc_pr_i(TRUE)
-
-    dimnames(fpr_i) <- list(method_names, level_names)
-    dimnames(tpr_i) <- list(method_names, level_names)
 
     ROC_data <-
       dplyr::left_join(
         fpr_i_long <- as.data.frame(as.table(fpr_i)),
         tpr_i_long <- as.data.frame(as.table(tpr_i)),
         by = c("Var1", "Var2")
-      )
+      ) |> stats::setNames(c("obs", "method", "fpr", "tpr")) |>
+      dplyr::arrange(method, desc(fpr), desc(tpr))
 
+    ROC_plot <- plot_ROC()
 
+    # create progress plots
+    # create data frame of disease state and observation name for coloring progress plots
+    dis_data <- # disease status
+      data.frame(
+        true_D = as.character(as.numeric(true_D)),
+        group = obs_names) |>
+      tidyr::replace_na(list(true_D = "Unknown")) |>
+      dplyr::mutate(true_D = paste("Class", true_D))
+
+    z_k1_plot <- plot_z_kd("z_k1")
+    z_k0_plot <- plot_z_kd("z_k0")
+
+    z_k1_hist <-
+      data.frame(z_k1_est = ML_est@results$z_k1_est) |>
+      dplyr::mutate(true_D = dis_data$true_D) |>
+      ggplot2::ggplot(ggplot2::aes(x = z_k1_est, fill = true_D)) +
+      ggplot2::geom_histogram(bins = 40) +
+      ggplot2::scale_y_continuous("Observations", limits = c(0, NA), expand = c(0, 0.5)) +
+      ggplot2::scale_x_continuous(breaks = seq(0, 1, 0.05), expand = c(0, 0)) +
+      ggplot2::scale_fill_brewer("", palette = "Set1", na.value = "gray30", drop = FALSE) +
+      ggplot2::theme(panel.background = ggplot2::element_blank(),
+                     panel.grid = ggplot2::element_line(color = "gray80"),
+                     panel.spacing = unit(2, "lines"),
+                     strip.text.y.right = ggplot2::element_text(),
+                     strip.background = ggplot2::element_rect(fill = "gray80", color = "black"),
+                     axis.text.x = ggplot2::element_text(angle = 90, hjust = 1, vjust = 0.5),
+                     legend.position = "bottom")
+
+    return(
+      list(
+        ROC = ROC_plot,
+        z_k1 = z_k1_plot,
+        z_k0 = z_k0_plot,
+        z_k1_hist = z_k1_hist))
 
     }

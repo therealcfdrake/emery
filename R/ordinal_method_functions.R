@@ -1,24 +1,31 @@
-#' Generate data for multiple ordinal measurement methods
-#'
-#' @inheritParams generate_multimethod_data
+
+#' @rdname generate_multimethod_data
+#' @order 3
+#' @export
 #' @param n_level Used for ordinal methods. An integer representing the number of ordinal levels each method has
 #' @param pmf_pos,pmf_neg Used for ordinal methods. A n_method by n_level matrix representing the probability mass functions for positive and negative results, respectively
 #' @param level_names Used for ordinal methods. Optional vector of names used to identify each level
 #'
-#' @return A list containing the simulated data set and the parameters used to generate it
-#'
 generate_multimethod_ordinal <-
-  function(n_method = 3,
-           n_obs = 100,
-           prev = 0.5,
-           D = NULL,
-           n_level = 5,
-           pmf_pos = matrix(rep(1:n_level - 1, n_method), nrow = n_method, byrow = TRUE),
-           pmf_neg = matrix(rep(n_level:1 - 1, n_method), nrow = n_method, byrow = TRUE),
-           method_names = NULL,
-           level_names = NULL,
-           obs_names = NULL
+  function(
+    n_method = 3,
+    n_obs = 100,
+    prev = 0.5,
+    D = NULL,
+    n_level = 5,
+    pmf_pos = matrix(rep(1:n_level - 1, n_method), nrow = n_method, byrow = TRUE),
+    pmf_neg = matrix(rep(n_level:1 - 1, n_method), nrow = n_method, byrow = TRUE),
+    method_names = NULL,
+    level_names = NULL,
+    obs_names = NULL,
+    n_method_subset = n_method,
+    first_reads_all = FALSE
   ){
+
+    # Internal functions
+    ord_sample <- function(n, pmf){
+      sample(1:length(pmf), n, replace = TRUE, prob = pmf)
+      }
 
     if(is.null(method_names)){method_names <- name_thing("method", n_method)}
     if(is.null(level_names)){level_names <- name_thing("level", n_level)}
@@ -32,14 +39,18 @@ generate_multimethod_ordinal <-
 
     dis <- define_disease_state(D, n_obs, prev)
 
-    ord_sample <-
-      function(n, pmf){sample(1:length(pmf), n, replace = TRUE, prob = pmf)}
+    subset_matrix <-
+      censor_data(
+        n_obs = dis$n_obs,
+        first_reads_all = first_reads_all,
+        n_method_subset = n_method_subset,
+        n_method = n_method)
 
     generated_data <-
       rbind(
         lapply(setNames(1:n_method, method_names), function(x) ord_sample(dis$pos, pmf_pos[x, ])) |> as.data.frame(),
         lapply(setNames(1:n_method, method_names), function(x) ord_sample(dis$neg, pmf_neg[x, ])) |> as.data.frame()
-      ) |> as.matrix()
+      ) |> as.matrix() * subset_matrix
 
     dimnames(generated_data) <- list(obs_names, method_names)
 
@@ -47,8 +58,8 @@ generate_multimethod_ordinal <-
     sp_observed <- list()
 
     for(x in 1:n_level){
-      se_observed[[x]] <- colMeans(generated_data[dis$D == 1, ] > x)
-      sp_observed[[x]] <- colMeans(generated_data[dis$D == 0, ] < x)
+      se_observed[[x]] <- colMeans(generated_data[dis$D == 1, ] > x, na.rm = TRUE)
+      sp_observed[[x]] <- colMeans(generated_data[dis$D == 0, ] < x, na.rm = TRUE)
     }
 
     se_observed <- do.call(cbind, se_observed)
@@ -82,17 +93,19 @@ generate_multimethod_ordinal <-
 
   }
 
-#' Estimate accuracy statistics and prevalence by ML
-#'
-#' @inheritParams estimate_ML
+#' @rdname estimate_ML
+#' @order 3
+#' @export
 #' @param level_names An optional, ordered, character vector of unique names corresponding to
 #' the levels of the methods.
 #'
-#' @return a MultiMethodMLEstimate class S4 object containing ML accuracy statistics by EM
-#'
 estimate_ML_ordinal <-
   function(data,
-           init = list(pi_1_1 = NULL, phi_1ij_1 = NULL, phi_0ij_1 = NULL, n_level = NULL),
+           init = list(
+             pi_1_1 = NULL,
+             phi_1ij_1 = NULL,
+             phi_0ij_1 = NULL,
+             n_level = NULL),
            level_names = NULL,
            max_iter = 1000,
            tol = 1e-7,
@@ -149,17 +162,24 @@ estimate_ML_ordinal <-
     mean(q_k1)
   }
   calc_next_phi_dij <- function(q_kd){
-    lapply(1:length(q_kd), function(k){q_kd[k] * y_k[[k]]}) |> Reduce(f = "+", x = _) /
-      sum(q_kd)
+    denom <- as.vector(q_kd %*% !is.na(t_k)) # missing value correction. only observations which a method had a response are summed
+    t(
+      lapply(1:length(q_kd), function(k){q_kd[k] * y_k[[k]]}) |>
+        Reduce(f = "+", x = _) |>
+        t() / denom
+    )
+      # sum(q_kd) # original denominator
   }
 
-  t_k <- data
+  t_k <- as.matrix(data)
   n_method <- ncol(t_k)
   n_obs <- nrow(t_k)
   method_names <- if(is.null(colnames(t_k))){name_thing("method", n_method)}else{colnames(t_k)}
   obs_names <- if(is.null(rownames(t_k))){name_thing("obs", n_obs)}else{rownames(t_k)}
 
-  if(is.null(init$n_level)){n_level <- length(unique(as.vector(t_k)))}
+  dimnames(t_k) <- list(obs_names, method_names)
+
+  if(is.null(init$n_level)){n_level <- sum(!is.na(unique(as.vector(t_k))))}else{n_level <- init$n_level}
   if(is.null(level_names)){level_names <- name_thing("level", n_level)}
   if(!all(c("pi_1_1", "phi_1ij_1", "phi_0ij_1", "n_level") %in% names(init)) |
      any(sapply(init, is.null))
@@ -215,6 +235,11 @@ estimate_ML_ordinal <-
           phi_1ij_est = phi_1ij_t,
           phi_0ij_est = phi_0ij_t,
           q_k1_est = q_k1_t),
+        names = list(
+          method_names = method_names,
+          obs_names = obs_names,
+          level_names = level_names),
+        data = t_k,
         iter = iter,
         type = "ordinal")
 
@@ -236,14 +261,15 @@ estimate_ML_ordinal <-
 
 }
 
-#' Create Seed Values for EM Algorithm
-#'
-#' @param data a
-#' @param n_level a
-#' @param threshold_level a
-#' @param level_names a
-#'
-#' @return A list of initial values for EM algorithm
+#' @rdname pollinate_ML
+#' @order 3
+#' @export
+#' @param n_level Used for ordinal methods. Integer number of levels each method contains
+#' @param threshold_level Used for ordinal methods. A value from 1 to `n_level` which
+#' indicates the initial threshold used to define positive and negative disease states.
+#' @param level_names Used for ordinal methods. Optional vector of length `n_level`
+#' containing names for each level.
+#' @importFrom stats runif
 
 pollinate_ML_ordinal <-
   function(data,
@@ -264,7 +290,7 @@ pollinate_ML_ordinal <-
 
     D_majority <- as.numeric(
       rowMeans(t_k, na.rm = TRUE) |>
-        (\(x) x + runif(n_obs, -0.000001, 0.000001))() |> # break ties
+        (\(x) x + stats::runif(n_obs, -0.000001, 0.000001))() |> # break ties
         round() |>
         (\(x) x >= threshold_level)()
     )
@@ -297,53 +323,48 @@ pollinate_ML_ordinal <-
 
   }
 
-#' Create plots of ordinal multimethod comparison estimates
-#'
-#' @param ML_est A MultiMethodMLEstimate class object with type "Ordinal"
-#' @param params A list of population parameters. This is mostly used to evaluate
-#' results from a simulation (where parameters are already known), but can be used to visualize
-#' results with respect to some True value.
-#'
-#' @return a list of ggplot2 plots
+
+#' @rdname plot_ML
+#' @order 3
+#' @export
 #' @import ggplot2
 #' @import dplyr
 #' @import tidyr
+#' @importFrom stats setNames
 #' @importFrom purrr pluck
 #' @import tibble
 #'
 plot_ML_ordinal <-
   function(
     ML_est,
-    params = list(pi_1_1 = NULL, phi_1ij_1 = NULL, phi_0ij_1 = NULL, D = NULL, obs_names = NULL)){
+    params = list(
+      pi_1_1 = NULL,
+      phi_1ij_1 = NULL,
+      phi_0ij_1 = NULL,
+      D = NULL)){
 
     # internal functions
     calc_pr_i <- function(b){
       phi_dij <- if(b){ML_est@results$phi_1ij_est}else{ML_est@results$phi_0ij_est}
       sapply(
         1:n_level,
-        function(l) colSums(matrix(phi_dij[l:n_level, ], ncol = n_method)))
-    }
-    reshape_phi_d <- function(phi_d, d){
-      phi_d %>%
-        as.data.frame() %>%
-        tibble::rownames_to_column(var = "level") %>%
-        dplyr::mutate(d = d)
+        function(l) colSums(matrix(phi_dij[l:n_level, ], ncol = n_method)) |> pmax(0) |> pmin(1))
     }
     plot_ROC <- function(){
 
       AUC_data <-
-        ML_est@results$A_i_est %>%
-        as.list() %>%
-        data.frame() %>%
-        tidyr::pivot_longer(everything(), names_to = "method", values_to = "value") %>%
-        dplyr::mutate(label = paste0(method, ": ", sprintf("%0.3f", value))) %>%
-        dplyr::pull(label) %>%
+        ML_est@results$A_i_est |>
+        as.list() |>
+        data.frame() |>
+        tidyr::pivot_longer(everything(), names_to = "method", values_to = "value") |>
+        dplyr::mutate(label = paste0(method, ": ", sprintf("%0.3f", value))) |>
+        dplyr::pull(label) |>
         paste(collapse = "\n")
 
       AUC_label <- paste0("AUC\n", AUC_data)
 
-      ROC_data %>%
-        dplyr::bind_rows(expand.grid(method = method_names, level = "", fpr = 0, tpr = 0)) %>%
+      ROC_data |>
+        dplyr::bind_rows(expand.grid(method = method_names, level = "", fpr = 0, tpr = 0)) |>
         ggplot2::ggplot(ggplot2::aes(x = fpr, y = tpr, group = method, color = method)) +
         ggplot2::geom_path() +
         ggplot2::geom_point() +
@@ -355,20 +376,26 @@ plot_ML_ordinal <-
         ggplot2::scale_color_brewer("", palette = "Set1", na.value = "gray30", drop = FALSE) +
         ggplot2::coord_fixed() +
         ggplot2::theme(panel.background = ggplot2::element_blank(),
-                panel.grid = ggplot2::element_line(color = "gray80"),
-                axis.text.x = ggplot2::element_text(angle = 90, hjust = 1, vjust = 0.5),
-                legend.position = "bottom") +
+                       panel.grid = ggplot2::element_line(color = "gray80"),
+                       axis.text.x = ggplot2::element_text(angle = 90, hjust = 1, vjust = 0.5),
+                       legend.position = "bottom") +
         ggplot2::ggtitle("ROC Curves")
     }
+    reshape_phi_d <- function(phi_d, d){
+      phi_d |>
+        as.data.frame() |>
+        tibble::rownames_to_column(var = "level") |>
+        dplyr::mutate(d = d)
+    }
     plot_q_kd <- function(q_kd){
-      do.call(rbind, purrr::pluck(ML_est, "prog", q_kd)) %>%
-        as.data.frame() %>%
-        setNames(obs_names) %>%
-        dplyr::mutate(iter = row_number()) %>%
-        tidyr::pivot_longer(!iter, names_to = "group", values_to = "value") %>%
-        dplyr::left_join(dis_data, by = "group") %>%
-        tidyr::replace_na(list(D = "Class unknown")) %>%
-        ggplot2::ggplot(ggplot2::aes(x = iter, y = value, group = group, color = D)) +
+      do.call(rbind, purrr::pluck(ML_est, "prog", q_kd)) |>
+        as.data.frame() |>
+        stats::setNames(obs_names) |>
+        dplyr::mutate(iter = row_number()) |>
+        tidyr::pivot_longer(!iter, names_to = "group", values_to = "value") |>
+        dplyr::left_join(dis_data, by = "group") |>
+        tidyr::replace_na(list(true_D = "Class unknown")) |>
+        ggplot2::ggplot(ggplot2::aes(x = iter, y = value, group = group, color = true_D)) +
         ggplot2::geom_line() +
         ggplot2::scale_y_continuous(q_kd, limits = c(0, 1), breaks = seq(0, 1, 0.1), expand = c(0, 0)) +
         ggplot2::scale_x_continuous("Iteration", limits = c(0, ML_est@iter)) +
@@ -380,12 +407,13 @@ plot_ML_ordinal <-
     }
 
     # dimensions and names
-    n_level <- nrow(ML_est@results$phi_0ij_est)
-    level_names <- rownames(ML_est@results$phi_0ij_est)
-    n_method <- ncol(ML_est@results$phi_0ij_est)
-    method_names <- colnames(ML_est@results$phi_0ij_est)
-    n_obs <- length(ML_est@results$q_k1_est)
-    if(is.null(params$obs_names)){obs_names <- name_thing("obs", n_obs)}else{obs_names <- params$obs_names}
+    method_names <- ML_est@names$method_names
+    n_method <- length(method_names)
+    obs_names <- ML_est@names$obs_names
+    n_obs <- length(obs_names)
+    level_names <- ML_est@names$level_names
+    n_level <- length(level_names)
+    if(is.null(params$D)){true_D <- NA}else{true_D <- params$D}
 
     ### ROC Plot
 
@@ -408,11 +436,12 @@ plot_ML_ordinal <-
 
     # create progress plots
     # create data frame of disease state and observation name for coloring progress plots
-    # dis_data <- # disease status
-    #   data.frame(
-    #     D = as.character(as.numeric(params$D)),
-    #     group = obs_names) %>%
-    #   dplyr::mutate(D = paste("Class", D))
+    dis_data <- # disease status
+      data.frame(
+        true_D = as.character(as.numeric(true_D)),
+        group = obs_names) |>
+      tidyr::replace_na(list(true_D = "Unknown")) |>
+      dplyr::mutate(true_D = paste("Class", true_D))
 
     q_k1_plot <- plot_q_kd("q_k1")
     q_k0_plot <- plot_q_kd("q_k0")
@@ -420,24 +449,20 @@ plot_ML_ordinal <-
     # q_k1 histogram
 
     q_k1_hist <-
-      data.frame(q_k1_est = ML_est@results$q_k1_est) %>%
-      # dplyr::mutate(D = case_when(
-      #   is.null(params$D), NA_character_,
-      #   as.character(as.numeric(params$D)))) %>% ### FIX THIS ####
-      dplyr::mutate(D = ifelse(
-        is.null(params$D), NA_character_,
-        as.character(as.numeric(params$D)))) %>% ### FIX THIS ####
-      ggplot2::ggplot(ggplot2::aes(x = q_k1_est, fill = D)) +
-      ggplot2::geom_histogram(binwidth = 0.025, boundary = -1e-10) +
+      data.frame(q_k1_est = ML_est@results$q_k1_est) |>
+      dplyr::mutate(true_D = dis_data$true_D) |>
+      ggplot2::ggplot(ggplot2::aes(x = q_k1_est, fill = true_D)) +
+      ggplot2::geom_histogram(bins = 40) +
       ggplot2::scale_y_continuous("Observations", limits = c(0, NA), expand = c(0, 0.5)) +
-      ggplot2::scale_x_continuous(breaks = seq(0, 1, 0.05), expand = c(0, 0), limits = c(-0.02, 1.02)) +
+      ggplot2::scale_x_continuous(breaks = seq(0, 1, 0.05), expand = c(0, 0)) +
       ggplot2::scale_fill_brewer("", palette = "Set1", na.value = "gray30", drop = FALSE) +
       ggplot2::theme(panel.background = ggplot2::element_blank(),
             panel.grid = ggplot2::element_line(color = "gray80"),
             panel.spacing = unit(2, "lines"),
             strip.text.y.right = ggplot2::element_text(),
             strip.background = ggplot2::element_rect(fill = "gray80", color = "black"),
-            axis.text.x = ggplot2::element_text(angle = 90, hjust = 1, vjust = 0.5))
+            axis.text.x = ggplot2::element_text(angle = 90, hjust = 1, vjust = 0.5),
+            legend.position = "bottom")
 
     # phi plot
 
@@ -445,14 +470,14 @@ plot_ML_ordinal <-
       dplyr::bind_rows(
         reshape_phi_d(ML_est@results$phi_1ij_est, "d = 1"),
         reshape_phi_d(ML_est@results$phi_0ij_est, "d = 0")
-      ) %>%
-        tidyr::pivot_longer(c(-level, -d)) %>%
+      ) |>
+        tidyr::pivot_longer(c(-level, -d)) |>
       ggplot2::ggplot(ggplot2::aes(x = name, y = value, fill = level)) +
       ggplot2::geom_col(width = 1, alpha = 0.75, color = "black") +
       ggplot2::scale_y_continuous("p", breaks = seq(0, 1, 0.10), expand = c(0, 0)) +
       ggplot2::scale_x_discrete("Method", expand = c(0, 0)) +
       ggplot2::coord_cartesian(ylim = c(0, 1)) +
-      ggplot2::scale_fill_brewer(palette = "Set1") +
+      ggplot2::scale_fill_brewer(palette = "Blues") +
       ggplot2::facet_grid(d ~ .) +
       ggplot2::theme(panel.background = ggplot2::element_blank(),
               panel.grid = ggplot2::element_line(color = "gray80"),
