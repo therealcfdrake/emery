@@ -28,9 +28,12 @@ pollinate_ML_continuous(
 )
 }
 \arguments{
-\item{type}{A string specifying the data type of the methods under evaluation}
+\item{type}{A string specifying the data type of the methods under evaluation.}
 
-\item{data}{An \code{n_obs} by \code{n_method} matrix containing the observed values for each method. If dimensions are named, row names will be used for obs_names, and column names will be used for method_names}
+\item{data}{An \code{n_obs} by \code{n_method} \code{\link{matrix}} containing the
+observed values for each method. If the dimensions are named, row names will
+be used to name each observation (\code{obs_names}) and column names will be used
+to name each measurement method (\code{method_names}).}
 
 \item{...}{Additional arguments}
 
@@ -52,5 +55,6 @@ containing names for each level.}
 a list of EM algorithm initialization values
 }
 \description{
-Generate seed values for EM algorithm
+\code{pollinate_ML()} is a general helper function which can be used to generate starting
+values, i.e. seeds, for the \code{estimate_ML()} function from a multi-method data set.
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/generic_functions.R
 \name{boot_ML}
 \alias{boot_ML}
-\title{Bootstrap Accuracy Statistic Estimation for Multimethod Data}
+\title{Bootstrap accuracy statistic estimation for multi-method data}
 \usage{
 boot_ML(
   type = c("binary", "ordinal", "continuous"),
@@ -15,15 +15,20 @@ boot_ML(
 )
 }
 \arguments{
-\item{type}{A string specifying the data type of the methods under evaluation}
+\item{type}{A string specifying the data type of the methods under evaluation.}
 
-\item{data}{An \code{n_obs} by \code{n_method} matrix containing the observed values for each method. If dimensions are named, row names will be used for obs_names, and column names will be used for method_names}
+\item{data}{An \code{n_obs} by \code{n_method} \code{\link{matrix}} containing the
+observed values for each method. If the dimensions are named, row names will
+be used to name each observation (\code{obs_names}) and column names will be used
+to name each measurement method (\code{method_names}).}
 
 \item{n_boot}{number of bootstrap estimates to compute}
 
-\item{max_iter}{The maximum number of EM algorithm iterations to compute before reporting a result.}
+\item{max_iter}{The maximum number of EM algorithm iterations to compute before
+reporting a result.}
 
-\item{tol}{The minimum change in statistic estimates needed to continue iterating the EM algorithm.}
+\item{tol}{The minimum change in statistic estimates needed to continue
+iterating the EM algorithm.}
 
 \item{seed}{optional seed for RNG}
 
@@ -33,7 +38,8 @@ boot_ML(
 a list containing accuracy estimates \code{v} and the parameters used
 }
 \description{
-Bootstrap Accuracy Statistic Estimation for Multimethod Data
+\code{boot_ML()} is a function used to generate bootstrap estimates of results generated
+by \code{estimate_ML()} primarily for use in creating nonparametric confidence intervals.
 }
 \examples{
 # Set seed for this example

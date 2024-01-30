@@ -12,7 +12,7 @@ censor_data(
 )
 }
 \arguments{
-\item{n_obs}{An integer representing the number of observations to simulate}
+\item{n_obs}{An integer representing the number of observations to simulate.}
 
 \item{first_reads_all}{Used for binary methods. A logical which forces method
 1 to have a result for every observation}
@@ -20,7 +20,7 @@ censor_data(
 \item{n_method_subset}{Used for binary methods. An integer defining how
 many methods to select at random to produce a result for each observation}
 
-\item{n_method}{An integer representing the number of methods to simulate}
+\item{n_method}{An integer representing the number of methods to simulate.}
 }
 \description{
 Censor data randomly rowwise

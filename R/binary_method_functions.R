@@ -267,9 +267,24 @@ pollinate_ML_binary <-
 
 }
 
-
 #' @rdname plot_ML
 #' @order 2
+#' @returns Binary:
+#' \item{prev}{A plot showing how the prevalence estimate changes with each
+#' iteration of the EM algorithm}
+#' \item{se}{A plot showing how the sensitivity estimates of each method change with each
+#' iteration of the EM algorithm}
+#' \item{sp}{A plot showing how the specificity estimates of each method change with each
+#' iteration of the EM algorithm}
+#' \item{qk}{A plot showing how the q values for each observation k change
+#' over each iteration of the EM algorithm}
+#' \item{qk_hist}{A histogram of q values. Observations, k, can be colored by True
+#' state if it is passed by `params$D`.}
+#' \item{se_sp}{A plot showing the path the sensitivity and specificity estimates
+#' for each method follows during the EM algorithm. True sensitivity and specificity
+#' values can be passed by `params$se` and `params$sp`, respectively. This is useful
+#' for comparing algorithm results when applied to simulation data where True parameter
+#' values are known.}
 #' @export
 #' @import ggplot2
 #' @import dplyr

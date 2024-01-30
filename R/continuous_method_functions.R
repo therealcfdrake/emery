@@ -287,6 +287,17 @@ pollinate_ML_continuous <-
 
 #' @rdname plot_ML
 #' @order 4
+#' @returns Continuous:
+#' \item{ROC}{The Receiver Operator Characteristic (ROC) curves estimated for
+#' each method}
+#' \item{z_k1}{A plot showing how the z_k1 values for each observation change
+#' over each iteration of the EM algorithm. Observations can be colored by True
+#' state if it is passed (`params$D`).}
+#' \item{z_k0}{A plot showing how the z_k0 values for each observation change
+#' over each iteration of the EM algorithm. Observations can be colored by True
+#' state if it is passed (`params$D`).}
+#' \item{z_k1_hist}{A histogram of z_k1 values. Observations can be colored by True
+#' state if it is passed (`params$D`).}
 #' @export
 #' @import dplyr
 #' @import ggplot2

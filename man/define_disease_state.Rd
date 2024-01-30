@@ -7,11 +7,13 @@
 define_disease_state(D = NULL, n_obs = NULL, prev = NULL)
 }
 \arguments{
-\item{D}{Optional binary vector representing the true classification of each observation}
+\item{D}{Optional binary vector representing the true classification of
+each observation.}
 
-\item{n_obs}{An integer representing the number of observations to simulate}
+\item{n_obs}{An integer representing the number of observations to simulate.}
 
-\item{prev}{Optional value between 0-1 which represents the proportion of positive results in the target population}
+\item{prev}{A value between 0-1 which represents the proportion of
+"positive" results in the target population.}
 }
 \value{
 A list of features defining the true disease status of each observation

@@ -1,15 +1,29 @@
-#' Create data sets which simulate paired measurements of multiple methods
+#' @title Create data sets which simulate paired measurements of multiple methods
+#' @description
+#' `generate_multimethod_data()` is a general function for creating a data set which
+#' simulates the results one might see when using several different methods to measure a set
+#' of objects.
 #'
 #' @order 1
-#' @param type A string specifying the data type of the methods under evaluation
-#' @param n_method An integer representing the number of methods to simulate
-#' @param n_obs An integer representing the number of observations to simulate
-#' @param prev Optional value between 0-1 which represents the proportion of positive results in the target population
-#' @param D Optional binary vector representing the true classification of each observation
-#' @param method_names Optional vector of names used to identify each method
-#' @param obs_names Optional vector of names used to identify each observation
+#' @param type A string specifying the data type of the methods being simulated.
+#' @param n_method An integer representing the number of methods to simulate.
+#' @param n_obs An integer representing the number of observations to simulate.
+#' @param prev A value between 0-1 which represents the proportion of
+#' "positive" results in the target population.
+#' @param D Optional binary vector representing the true classification of
+#'  each observation.
+#' @param method_names Optional vector of names used to identify each method.
+#' @param obs_names Optional vector of names used to identify each observation.
 #' @param ... Additional parameters
-#' @return A list containing a simulated data set and the parameters used to create it
+#' @returns A list containing a simulated data set and the parameters used to create it
+#' @details
+#' The function supports binary measurement methods, e.g., Pass/Fail;
+#' ordinal measurement methods, e.g., the Likert scale; and continuous measurement
+#' methods, e.g., height. The data are generated under the assumption that the
+#' underlying population consists of a mixture of two groups. The primary
+#' application of this is to simulate a sample from a population which has some
+#' prevalence of disease.
+#'
 #' @export
 #' @example man/examples/ML_example.R
 
@@ -31,19 +45,47 @@ generate_multimethod_data <-
     )
   }
 
-#' Estimate maximum likelihood accuracy statistics by expectation maximization
+#' @title Estimate maximum likelihood accuracy statistics by expectation maximization
+#' @description
+#' `estimate_ML()` is a general function for estimating the maximum likelihood accuracy
+#' statistics for a set of methods with no known reference value, i.e. "truth", or
+#' "gold standard". The lack of an infallible reference is sometimes referred to
+#' as an "imperfect gold standard", which is the language used in Statistical Methods
+#' in Diagnostic Medicine. The estimation is achieved by using the expectation
+#' maximization algorithm detailed in.
 #'
-#' @param type A string specifying the data type of the methods under evaluation
-#' @param data An `n_obs` by `n_method` matrix containing the observed values for each method. If dimensions are named, row names will be used for obs_names, and column names will be used for method_names
-#' @param init An optional list of initial values used to seed the EM algorithm. If initial values are not provided, a function will be called on the data to estimate starting values.
-#' @param max_iter The maximum number of EM algorithm iterations to compute before reporting a result.
-#' @param tol The minimum change in statistic estimates needed to continue iterating the EM algorithm.
-#' @param save_progress A logical indication whether to save interim calculations used in the EM algorithm.
+#' @param type A string specifying the data type of the methods under evaluation.
+#' @param data An `n_obs` by `n_method` \code{\link{matrix}} containing the
+#' observed values for each method. If the dimensions are named, row names will
+#' be used to name each observation (`obs_names`) and column names will be used
+#' to name each measurement method (`method_names`).
+#' @param init An optional list of initial values used to seed the EM algorithm.
+#'  If initial values are not provided, the `pollinate_ML()` function will be
+#'  called on the data to estimate starting values. It is recommended to try several
+#'  sets of starting parameters to ensure that the algorithm converges to the same
+#'  results. This is to verify that the result does not represent a local extrema.
+#' @param max_iter The maximum number of EM algorithm iterations to compute before
+#' reporting a result.
+#' @param tol The minimum change in statistic estimates needed to continue
+#' iterating the EM algorithm.
+#' @param save_progress A logical indication of whether to save interim
+#' calculations used in the EM algorithm.
 #' @param ... Additional arguments
 #' @order 1
-#' @return A MultiMethodMLEstimate class S4 object containing ML accuracy statistics by EM
+#' @returns `estimate_ML()` returns an S4 object of class "MultiMethodMLEstimate"
+#' containing the maximum likelihood accuracy statistics calculated by EM.
+#' @details
+#' The algorithms used in this function are based on those presented in
+#' \insertCite{Zhou_Obuchowski_McClish_2011}{emery} and have been validated on
+#' several examples therein. Minor changes to the literal calculations have been
+#' made for efficiency, code readability, and the like, but the underlying steps
+#' remain functionally the same.
+#' @importFrom Rdpack reprompt
 #' @export
 #' @example man/examples/ML_example.R
+#' @references
+#' \insertRef{Zhou_Obuchowski_McClish_2011}{emery}
+
 
 estimate_ML <-
   function(
@@ -62,14 +104,16 @@ estimate_ML <-
     )
   }
 
-#' Create plots visualizing the ML estimation process.
+#' @title Create plots visualizing the ML estimation process and results.
+#' @description
+#' `plot_ML()` is a general function for visualizing the results generated by `estimate_ML()`.
 #'
 #' @param ML_est A MultiMethodMLEstimate class object
 #' @param params A list of population parameters. This is mostly used to evaluate
 #' results from a simulation where the target parameters are already known, but can be used to visualize
 #' results with respect to some True value.
 #' @order 1
-#' @return a list of ggplot2 plots.
+#' @returns A list of ggplot2 plots.
 #' @export
 #' @example man/examples/ML_example.R
 
@@ -85,12 +129,14 @@ plot_ML <-
     )
   }
 
-#' Generate seed values for EM algorithm
-#'
+#' @title Generate seed values for EM algorithm
+#' @description
+#' `pollinate_ML()` is a general helper function which can be used to generate starting
+#' values, i.e. seeds, for the `estimate_ML()` function from a multi-method data set.
 #' @inheritParams estimate_ML
 #' @param ... Additional arguments
 #' @order 1
-#' @return a list of EM algorithm initialization values
+#' @returns a list of EM algorithm initialization values
 #' @export
 
 pollinate_ML <-
@@ -107,13 +153,16 @@ pollinate_ML <-
   }
 
 
-#' Bootstrap Accuracy Statistic Estimation for Multimethod Data
+#' @title Bootstrap accuracy statistic estimation for multi-method data
+#' @description
+#' `boot_ML()` is a function used to generate bootstrap estimates of results generated
+#' by `estimate_ML()` primarily for use in creating nonparametric confidence intervals.
 #'
 #' @inheritParams estimate_ML
 #'
 #' @param n_boot number of bootstrap estimates to compute
 #' @param seed optional seed for RNG
-#' @return a list containing accuracy estimates `v` and the parameters used
+#' @returns a list containing accuracy estimates `v` and the parameters used
 #' @export
 #' @example man/examples/bootstrap_example.R
 

@@ -326,6 +326,19 @@ pollinate_ML_ordinal <-
 
 #' @rdname plot_ML
 #' @order 3
+#' @returns Ordinal:
+#' \item{ROC}{The Receiver Operator Characteristic (ROC) curves estimated for
+#' each method}
+#' \item{q_k1}{A plot showing how the q values for each observation, k, change when d=1
+#' over each iteration of the EM algorithm. Observations can be colored by True
+#' state if it is passed (`params$D`).}
+#' \item{q_k0}{A plot showing how the q values for each observation, k, change when d=0
+#' over each iteration of the EM algorithm. Observations can be colored by True
+#' state if it is passed by `params$D`.}
+#' \item{q_k1_hist}{A histogram of q_1 values. Observations, k, can be colored by True
+#' state if it is passed by `params$D`.}
+#' \item{phi_d}{A stacked bar graph representing the estimated CMFs of each
+#' method when `d=0` and `d=1`.}
 #' @export
 #' @import ggplot2
 #' @import dplyr

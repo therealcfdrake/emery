@@ -64,19 +64,21 @@ generate_multimethod_continuous(
 )
 }
 \arguments{
-\item{type}{A string specifying the data type of the methods under evaluation}
+\item{type}{A string specifying the data type of the methods being simulated.}
 
-\item{n_method}{An integer representing the number of methods to simulate}
+\item{n_method}{An integer representing the number of methods to simulate.}
 
-\item{n_obs}{An integer representing the number of observations to simulate}
+\item{n_obs}{An integer representing the number of observations to simulate.}
 
-\item{prev}{Optional value between 0-1 which represents the proportion of positive results in the target population}
+\item{prev}{A value between 0-1 which represents the proportion of
+"positive" results in the target population.}
 
-\item{D}{Optional binary vector representing the true classification of each observation}
+\item{D}{Optional binary vector representing the true classification of
+each observation.}
 
-\item{method_names}{Optional vector of names used to identify each method}
+\item{method_names}{Optional vector of names used to identify each method.}
 
-\item{obs_names}{Optional vector of names used to identify each observation}
+\item{obs_names}{Optional vector of names used to identify each observation.}
 
 \item{...}{Additional parameters}
 
@@ -103,7 +105,17 @@ many methods to select at random to produce a result for each observation}
 A list containing a simulated data set and the parameters used to create it
 }
 \description{
-Create data sets which simulate paired measurements of multiple methods
+\code{generate_multimethod_data()} is a general function for creating a data set which
+simulates the results one might see when using several different methods to measure a set
+of objects.
+}
+\details{
+The function supports binary measurement methods, e.g., Pass/Fail;
+ordinal measurement methods, e.g., the Likert scale; and continuous measurement
+methods, e.g., height. The data are generated under the assumption that the
+underlying population consists of a mixture of two groups. The primary
+application of this is to simulate a sample from a population which has some
+prevalence of disease.
 }
 \examples{
 # Set seed for this example

@@ -46,17 +46,27 @@ estimate_ML_ordinal(
 )
 }
 \arguments{
-\item{type}{A string specifying the data type of the methods under evaluation}
+\item{type}{A string specifying the data type of the methods under evaluation.}
 
-\item{data}{An \code{n_obs} by \code{n_method} matrix containing the observed values for each method. If dimensions are named, row names will be used for obs_names, and column names will be used for method_names}
+\item{data}{An \code{n_obs} by \code{n_method} \code{\link{matrix}} containing the
+observed values for each method. If the dimensions are named, row names will
+be used to name each observation (\code{obs_names}) and column names will be used
+to name each measurement method (\code{method_names}).}
 
-\item{init}{An optional list of initial values used to seed the EM algorithm. If initial values are not provided, a function will be called on the data to estimate starting values.}
+\item{init}{An optional list of initial values used to seed the EM algorithm.
+If initial values are not provided, the \code{pollinate_ML()} function will be
+called on the data to estimate starting values. It is recommended to try several
+sets of starting parameters to ensure that the algorithm converges to the same
+results. This is to verify that the result does not represent a local extrema.}
 
-\item{max_iter}{The maximum number of EM algorithm iterations to compute before reporting a result.}
+\item{max_iter}{The maximum number of EM algorithm iterations to compute before
+reporting a result.}
 
-\item{tol}{The minimum change in statistic estimates needed to continue iterating the EM algorithm.}
+\item{tol}{The minimum change in statistic estimates needed to continue
+iterating the EM algorithm.}
 
-\item{save_progress}{A logical indication whether to save interim calculations used in the EM algorithm.}
+\item{save_progress}{A logical indication of whether to save interim
+calculations used in the EM algorithm.}
 
 \item{...}{Additional arguments}
 
@@ -64,10 +74,23 @@ estimate_ML_ordinal(
 the levels of the methods.}
 }
 \value{
-A MultiMethodMLEstimate class S4 object containing ML accuracy statistics by EM
+\code{estimate_ML()} returns an S4 object of class "MultiMethodMLEstimate"
+containing the maximum likelihood accuracy statistics calculated by EM.
 }
 \description{
-Estimate maximum likelihood accuracy statistics by expectation maximization
+\code{estimate_ML()} is a general function for estimating the maximum likelihood accuracy
+statistics for a set of methods with no known reference value, i.e. "truth", or
+"gold standard". The lack of an infallible reference is sometimes referred to
+as an "imperfect gold standard", which is the language used in Statistical Methods
+in Diagnostic Medicine. The estimation is achieved by using the expectation
+maximization algorithm detailed in.
+}
+\details{
+The algorithms used in this function are based on those presented in
+\insertCite{Zhou_Obuchowski_McClish_2011}{emery} and have been validated on
+several examples therein. Minor changes to the literal calculations have been
+made for efficiency, code readability, and the like, but the underlying steps
+remain functionally the same.
 }
 \examples{
 # Set seed for this example
@@ -98,4 +121,7 @@ my_result <- estimate_ML(
 # View results of ML estimate
 my_result@results
 
+}
+\references{
+\insertRef{Zhou_Obuchowski_McClish_2011}{emery}
 }

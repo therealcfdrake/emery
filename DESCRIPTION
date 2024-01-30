@@ -1,5 +1,5 @@
 Package: emery
-Title: What the Package Does (One Line, Title Case)
+Title: Estimate Accuracy Statistics with Imperfect Gold Standards
 Version: 0.0.0.9000
 Authors@R: 
     person("Corie", "Drake", , "therealcfdrake@gmail.com", role = c("aut", "cre"),
@@ -18,4 +18,6 @@ Imports:
     tidyr,
     mvtnorm,
     methods,
-    stringr
+    stringr,
+    Rdpack
+RdMacros: Rdpack
