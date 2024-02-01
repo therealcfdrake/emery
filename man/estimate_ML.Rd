@@ -80,17 +80,20 @@ containing the maximum likelihood accuracy statistics calculated by EM.
 \description{
 \code{estimate_ML()} is a general function for estimating the maximum likelihood accuracy
 statistics for a set of methods with no known reference value, i.e. "truth", or
-"gold standard". The lack of an infallible reference is sometimes referred to
-as an "imperfect gold standard", which is the language used in Statistical Methods
-in Diagnostic Medicine. The estimation is achieved by using the expectation
-maximization algorithm detailed in.
+"gold standard".
 }
 \details{
-The algorithms used in this function are based on those presented in
+The lack of an infallible reference method is referred to
+as an imperfect gold standard (GS). Accuracy statistics which rely on a GS
+method, such as sensitivity, specificity, and AUC,
+can be estimated using imperfect gold standards by iteratively estimating the
+maximum likelihood values of these statistics while the conditional independence
+assumption holds. \code{estimate_ML()} relies on a collection of expectation maximization (EM) algorithms
+to achieve this. The EM algorithms used in this function are based on those presented in
 \insertCite{Zhou_Obuchowski_McClish_2011}{emery} and have been validated on
 several examples therein. Minor changes to the literal calculations have been
 made for efficiency, code readability, and the like, but the underlying steps
-remain functionally the same.
+remain functionally unchanged.
 }
 \examples{
 # Set seed for this example
