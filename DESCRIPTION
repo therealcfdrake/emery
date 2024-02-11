@@ -26,3 +26,7 @@ Imports:
     stringr,
     Rdpack
 RdMacros: Rdpack
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr

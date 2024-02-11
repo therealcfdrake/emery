@@ -1,0 +1,185 @@
+---
+title: "emery"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{emery}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(emery)
+set.seed(65123)
+```
+
+Emery is a package for estimating accuracy statistics for multiple measurement
+methods in the absence of a gold standard. It supports sets of methods which are
+binary, ordinal, or continuous. 
+
+The `generate_multimethod_data()` function can be used to simulate the results 
+from paired measurements of a set of objects. 
+
+```{r simulate binary data}
+ex_bin_data <- 
+  generate_multimethod_data(
+    type = "binary",
+    n_method = 3,
+    n_obs = 200,
+    se = c(0.85, 0.90, 0.95),
+    sp = c(0.95, 0.90, 0.85),
+    method_names = c("alpha", "beta", "gamma")
+  )
+ex_bin_data$generated_data[98:103, ]
+```
+
+The resulting list contains the simulated data as well as the parameters used
+to generate it. If method, observation, or level (ordinal only) names are not
+provided, default names will be applied
+
+Estimating the accuracy statistics of each method is as simple as calling the
+`estimate_ML()` function on the data set. The function expects the data to be a
+matrix of results with each row representing an observation and each column 
+representing a method. Starting values for the EM algorithm can be provided 
+through the `init` argument, but these are not required.
+
+```{r}
+ex_bin <- 
+  estimate_ML(
+    type = "binary",
+    data = ex_bin_data$generated_data,
+    init = list(prev_1 = 0.8, se_1 = c(0.7, 0.8, 0.75), sp_1 = c(0.85, 0.95, 0.75))
+  )
+ex_bin
+```
+
+The result of this function is an S4 object of the class MultiMethodMLEstimate.
+Basic plots illustrating the estimation process can be created by calling the 
+standard `plot()` function on the object.
+
+```{r, fig.width=7, fig.height=4}
+plot(ex_bin)
+```
+
+If the true population parameters are known, as is the case with simulated data,
+these can be provided to the plot function to enhance the information provided.
+
+```{r, fig.width=7, fig.height=4}
+plot(ex_bin, params = ex_bin_data$params)
+```
+
+The process for working with ordinal or continuous data is similar to above, 
+though the inputs tend to be more complex.
+
+To simulate ordinal data, we must supply the probability mass functions (pmf) associated 
+with the method's levels for the "positive" and "negative" observations. It is 
+assumed that "positive" observations correspond to higher levels.
+
+An example pmf for detecting "positive" observations for 3 methods with 5 levels
+may look something like this.
+
+```{r}
+pmf_pos_ex <- 
+  matrix(
+    c(
+      c(0.05, 0.10, 0.15, 0.30, 0.40),
+      c(0.00, 0.05, 0.20, 0.25, 0.50),
+      c(0.10, 0.15, 0.20, 0.25, 0.30)
+    ),
+    nrow = 3, 
+    byrow = TRUE
+  )
+
+pmf_pos_ex
+
+```
+We'll assume the pmf for negative observations is just the reverse of this for 
+simplicity here.
+
+```{r}
+pmf_neg_ex <- pmf_pos_ex[, 5:1]
+```
+
+
+```{r}
+ex_ord_data <- 
+  generate_multimethod_data(
+    type = "ordinal",
+    n_method = 3,
+    n_obs = 200,
+    pmf_pos = pmf_pos_ex,
+    pmf_neg = pmf_neg_ex,
+    method_names = c("alice", "bob", "carrie"),
+    level_names = c("strongly dislike", "dislike", "neutral", "like", "strongly like")
+  )
+ex_ord_data$generated_data[98:103, ]
+```
+
+
+```{r}
+ex_ord <- 
+  estimate_ML(
+    type = "ordinal",
+    data = ex_ord_data$generated_data
+  )
+ex_ord
+```
+
+```{r, fig.width=7, fig.height=4}
+plot(ex_ord, params = ex_ord_data$params)
+```
+
+Unlike binary and ordinal methods which require 3 or more methods to create 
+estimates, continuous method estimates can be produced with data from just 2.
+
+```{r}
+ex_con_data <- 
+  generate_multimethod_data(
+    type = "continuous",
+    n_method = 3,
+    n_obs = 200,
+    method_names = c("phi", "kappa", "sigma")
+  )
+ex_con_data$generated_data[98:103, ]
+```
+
+Estimating the accuracy parameters is the same as above.
+
+```{r}
+ex_con <- 
+  estimate_ML(
+    type = "continuous",
+    data = ex_con_data$generated_data
+  )
+ex_con
+```
+
+```{r, fig.width=7, fig.height=4}
+plot(ex_con, params = ex_con_data$params)
+```
+
+Confidence intervals for all accuracy statistics can be estimated by bootstrap.
+The `boot_ML()` function is a handy tool for generating bootstrapped estimates.
+
+```{r}
+ex_boot_bin <- boot_ML(
+  type = "binary",
+  data = ex_bin_data$generated_data,
+  n_boot = 20
+)
+
+# print the estimates of sensitivity from the complete data set
+ex_boot_bin$v_0@results$se_est
+
+# print the first 3 bootstrap estimates of sensitivity
+ex_boot_bin$v_star[[1]]$se_est
+ex_boot_bin$v_star[[2]]$se_est
+ex_boot_bin$v_star[[3]]$se_est
+```
+

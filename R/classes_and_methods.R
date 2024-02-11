@@ -39,7 +39,7 @@ setMethod(
   "show",
   signature(object = "MultiMethodMLEstimate"),
     function(object){
-      print(object@results)
+      print(object@results[!grepl("q|z", names(object@results))])
     }
   )
 
