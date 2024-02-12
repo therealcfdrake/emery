@@ -53,7 +53,6 @@ define_disease_state <-
 #' Censor data randomly rowwise
 #'
 #' @inheritParams generate_multimethod_data
-#' @export
 
 censor_data <- function(
     n_obs = dis$n_obs,

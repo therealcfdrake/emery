@@ -1,5 +1,5 @@
-# emery (development version)
+## emery (Version 0.5.0)
 
-## Major changes
+### Major changes
 
-* Initial CRAN submission.
+- Initial CRAN submission.

@@ -78,7 +78,10 @@ generate_multimethod_data <-
 #' assumption holds. `estimate_ML()` relies on a collection of expectation maximization (EM) algorithms
 #' to achieve this. The EM algorithms used in this function are based on those presented in
 #' \insertCite{Zhou_Obuchowski_McClish_2011}{emery} and have been validated on
-#' several examples therein. Minor changes to the literal calculations have been
+#' several examples therein. Additional details about these algorithms can be found
+#' for binary \insertCite{Walter1988-oq}{emery}, ordinal \insertCite{Zhou2005-gk}{emery},
+#'  and continuous \insertCite{Hsieh_Su_Zhou_2011}{emery} methods.
+#'  Minor changes to the literal calculations have been
 #' made for efficiency, code readability, and the like, but the underlying steps
 #' remain functionally unchanged.
 #' @importFrom Rdpack reprompt
@@ -86,6 +89,9 @@ generate_multimethod_data <-
 #' @example man/examples/ML_example.R
 #' @references
 #' \insertRef{Zhou_Obuchowski_McClish_2011}{emery}
+#' \insertRef{Walter1988-oq}{emery}
+#' \insertRef{Zhou2005-gk}{emery}
+#' \insertRef{Hsieh_Su_Zhou_2011}{emery}
 
 estimate_ML <-
   function(
@@ -205,5 +211,4 @@ boot_ML <-
     )
 
   }
-
 
