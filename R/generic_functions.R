@@ -77,6 +77,7 @@ generate_multimethod_data <-
 #' maximum likelihood values of these statistics while the conditional independence
 #' assumption holds. `estimate_ML()` relies on a collection of expectation maximization (EM) algorithms
 #' to achieve this. The EM algorithms used in this function are based on those presented in
+#' *Statistical Methods in Diagnostic Medicine, Second Edition*
 #' \insertCite{Zhou_Obuchowski_McClish_2011}{emery} and have been validated on
 #' several examples therein. Additional details about these algorithms can be found
 #' for binary \insertCite{Walter1988-oq}{emery}, ordinal \insertCite{Zhou2005-gk}{emery},
