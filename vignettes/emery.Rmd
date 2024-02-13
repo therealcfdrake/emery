@@ -126,7 +126,8 @@ ex_ord_data$generated_data[98:103, ]
 ex_ord <- 
   estimate_ML(
     type = "ordinal",
-    data = ex_ord_data$generated_data
+    data = ex_ord_data$generated_data,
+    level_names = ex_ord_data$params$level_names
   )
 ex_ord
 ```

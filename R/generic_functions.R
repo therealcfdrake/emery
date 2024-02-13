@@ -89,9 +89,13 @@ generate_multimethod_data <-
 #' @example man/examples/ML_example.R
 #' @references
 #' \insertRef{Zhou_Obuchowski_McClish_2011}{emery}
+#'
 #' \insertRef{Walter1988-oq}{emery}
+#'
 #' \insertRef{Zhou2005-gk}{emery}
+#'
 #' \insertRef{Hsieh_Su_Zhou_2011}{emery}
+#'
 
 estimate_ML <-
   function(

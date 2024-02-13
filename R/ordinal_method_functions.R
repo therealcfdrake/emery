@@ -398,7 +398,8 @@ plot_ML_ordinal <-
       phi_d |>
         as.data.frame() |>
         tibble::rownames_to_column(var = "level") |>
-        dplyr::mutate(d = d)
+        dplyr::mutate(d = d) |>
+        dplyr::mutate(level = factor(level, levels = level_names, ordered = TRUE))
     }
     plot_q_kd <- function(q_kd){
       do.call(rbind, purrr::pluck(ML_est, "prog", q_kd)) |>
