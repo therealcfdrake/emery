@@ -159,12 +159,9 @@ estimate_ML_binary <-
   list_B2 <- list()
   list_qk <- list()
 
-  converged <- FALSE
-  iter <- 1
-
   # iterate
 
-  for(iter in 1:max_iter){
+  for(iter in 1:(max_iter)){
 
     A2_m <- calc_A2()
     B2_m <- calc_B2()
@@ -188,8 +185,6 @@ estimate_ML_binary <-
     se_m <- calc_next_se()
     sp_m <- calc_next_sp()
     prev_m <- calc_next_prev()
-
-    iter <- iter + 1
 
   }
 
