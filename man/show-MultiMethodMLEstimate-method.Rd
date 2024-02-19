@@ -2,13 +2,17 @@
 % Please edit documentation in R/classes_and_methods.R
 \name{show,MultiMethodMLEstimate-method}
 \alias{show,MultiMethodMLEstimate-method}
-\title{Print final results stored in MultiMethodMLEstimate S4 object}
+\title{Show a MultiMethodMLEstimate S4 object}
 \usage{
 \S4method{show}{MultiMethodMLEstimate}(object)
 }
 \arguments{
-\item{object}{MultiMethodMLEstimate.}
+\item{object}{An object of class MultiMethodMLEstimate.}
+}
+\value{
+A list containing relevant accuracy statistic estimates. This is a
+subset of the list stored in \code{results} slot of the MultiMethodMLEstimate object.
 }
 \description{
-Print final results stored in MultiMethodMLEstimate S4 object
+Print the accuracy statistic estimates stored in a MultiMethodMLEstimate object.
 }

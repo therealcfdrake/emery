@@ -2,20 +2,27 @@
 % Please edit documentation in R/classes_and_methods.R
 \name{plot,MultiMethodMLEstimate-method}
 \alias{plot,MultiMethodMLEstimate-method}
-\title{Call \code{plot_ML} on MultiMethodMLEstimate S4 objects}
+\title{Create plots from a MultiMethodMLEstimate object}
 \usage{
 \S4method{plot}{MultiMethodMLEstimate}(x, y, ...)
 }
 \arguments{
-\item{x}{MultiMethodMLEstimate S4 object}
+\item{x}{a MultiMethodMLEstimate S4 object}
 
 \item{y}{not used}
 
-\item{...}{Additional arguments}
+\item{...}{
+  Arguments passed on to \code{\link[=plot_ML]{plot_ML}}
+  \describe{
+    \item{\code{params}}{A list of population parameters. This is primarily used to evaluate
+results from a simulation where the target parameters are known, but can be used to visualize
+results with respect to some True value.}
+  }}
 }
 \value{
 A list of ggplot2 plots
 }
 \description{
-Call \code{plot_ML} on MultiMethodMLEstimate S4 objects
+Create a list of plots visualizing the expectation maximization process and
+resulting accuracy statistics stored in a MultiMethodMLEstimate object.
 }

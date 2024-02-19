@@ -1,15 +1,15 @@
 Package: emery
 Title: Accuracy Statistic Estimation for Imperfect Gold Standards
-Version: 0.5.0
+Version: 0.5.1
 Authors@R: 
     person("Corie", "Drake", , "therealcfdrake@gmail.com", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0000-0002-1517-7103"))
 Description: Produce maximum likelihood estimates of common accuracy statistics
- for multiple measurement methods when a gold standard is not available. An R implementation of
- the expectation maximization algorithms described in *Statistical Methods
- in Diagnostic Medicine, Second Edition* (Zhou et al. 2011) with
- additional functions for creating simulated data and visualizing results. Supports
- binary, ordinal, and continuous measurement methods.
+ for multiple measurement methods when a gold standard is not available. An R 
+ implementation of the expectation maximization algorithms described in Zhou et 
+ al. (2011) <doi:10.1002/9780470906514> with additional functions for creating 
+ simulated data and visualizing results. Supports binary, ordinal, and 
+ continuous measurement methods.
 Roxygen: list(markdown = TRUE)
 License: GPL (>= 3)
 Encoding: UTF-8

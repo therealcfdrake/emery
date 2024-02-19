@@ -2,7 +2,7 @@
 % Please edit documentation in R/generic_functions.R
 \name{boot_ML}
 \alias{boot_ML}
-\title{Bootstrap accuracy statistic estimation for multi-method data}
+\title{Bootstrap ML accuracy statistic estimation for multi-method data}
 \usage{
 boot_ML(
   type = c("binary", "ordinal", "continuous"),
@@ -35,7 +35,10 @@ iterating the EM algorithm.}
 \item{...}{Additional arguments}
 }
 \value{
-a list containing accuracy estimates \code{v} and the parameters used
+a list containing accuracy estimates, \code{v}, and the parameters used.
+\item{v_0}{result from original data}
+\item{v_star}{list containing results from each bootstrap resampling}
+\item{params}{list containing the parameters used}
 }
 \description{
 \code{boot_ML()} is a function used to generate bootstrap estimates of results generated

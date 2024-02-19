@@ -3,22 +3,23 @@
 \docType{class}
 \name{MultiMethodMLEstimate-class}
 \alias{MultiMethodMLEstimate-class}
-\title{S4 object for storing the results of multi-method ML accuracy estimates}
+\title{S4 object containing the results of multi-method ML accuracy estimates}
 \description{
-S4 object for storing the results of multi-method ML accuracy estimates
+S4 object containing the results of multi-method ML accuracy estimates
 }
 \section{Slots}{
 
 \describe{
 \item{\code{results}}{a list of estimated accuracy statistics}
 
-\item{\code{names}}{a list containing the names of various dimensions}
+\item{\code{names}}{a list containing vectors of names of various dimensions}
 
-\item{\code{data}}{a copy of the data used to generate the estimate}
+\item{\code{data}}{a copy of the data used to generate the estimated values}
 
-\item{\code{iter}}{an integer number of iterations used by EM algorithm}
+\item{\code{iter}}{an integer number of iterations needed for the EM algorithm to converge}
 
-\item{\code{prog}}{a list of interim statistic estimates}
+\item{\code{prog}}{a list containing the values calculated during each iteration of
+the EM algorithm}
 
 \item{\code{type}}{a string describing the data type}
 }}

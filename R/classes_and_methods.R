@@ -1,10 +1,11 @@
 
-#' S4 object for storing the results of multi-method ML accuracy estimates
+#' S4 object containing the results of multi-method ML accuracy estimates
 #' @slot results a list of estimated accuracy statistics
-#' @slot names a list containing the names of various dimensions
-#' @slot data a copy of the data used to generate the estimate
-#' @slot iter an integer number of iterations used by EM algorithm
-#' @slot prog a list of interim statistic estimates
+#' @slot names a list containing vectors of names of various dimensions
+#' @slot data a copy of the data used to generate the estimated values
+#' @slot iter an integer number of iterations needed for the EM algorithm to converge
+#' @slot prog a list containing the values calculated during each iteration of
+#' the EM algorithm
 #' @slot type a string describing the data type
 #'
 #' @import methods
@@ -29,10 +30,13 @@ setClass(
   )
 )
 
-#' Print final results stored in MultiMethodMLEstimate S4 object
+#' Show a MultiMethodMLEstimate S4 object
+#' @description
+#' Print the accuracy statistic estimates stored in a MultiMethodMLEstimate object.
 #'
-#' @param object MultiMethodMLEstimate.
-#'
+#' @param object An object of class MultiMethodMLEstimate.
+#' @return A list containing relevant accuracy statistic estimates. This is a
+#' subset of the list stored in `results` slot of the MultiMethodMLEstimate object.
 #' @export
 #'
 setMethod(
@@ -43,12 +47,14 @@ setMethod(
     }
   )
 
-#' Call `plot_ML` on MultiMethodMLEstimate S4 objects
-#'
-#' @param x MultiMethodMLEstimate S4 object
+#' Create plots from a MultiMethodMLEstimate object
+#' @description
+#' Create a list of plots visualizing the expectation maximization process and
+#' resulting accuracy statistics stored in a MultiMethodMLEstimate object.
+#' @inheritDotParams plot_ML params
+#' @param x a MultiMethodMLEstimate S4 object
 #' @param y not used
 #' @param ... Additional arguments
-#'
 #' @return A list of ggplot2 plots
 #' @export
 #'

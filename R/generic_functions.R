@@ -163,7 +163,7 @@ pollinate_ML <-
   }
 
 
-#' @title Bootstrap accuracy statistic estimation for multi-method data
+#' @title Bootstrap ML accuracy statistic estimation for multi-method data
 #' @description
 #' `boot_ML()` is a function used to generate bootstrap estimates of results generated
 #' by `estimate_ML()` primarily for use in creating nonparametric confidence intervals.
@@ -172,7 +172,10 @@ pollinate_ML <-
 #'
 #' @param n_boot number of bootstrap estimates to compute
 #' @param seed optional seed for RNG
-#' @returns a list containing accuracy estimates `v` and the parameters used
+#' @returns a list containing accuracy estimates, `v`, and the parameters used.
+#' \item{v_0}{result from original data}
+#' \item{v_star}{list containing results from each bootstrap resampling}
+#' \item{params}{list containing the parameters used}
 #' @export
 #' @example man/examples/bootstrap_example.R
 
