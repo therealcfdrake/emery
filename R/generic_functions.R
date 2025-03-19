@@ -186,6 +186,7 @@ boot_ML <-
     n_boot = 100,
     max_iter = 1000,
     tol = 1e-7,
+    n_obs = NULL,
     seed = NULL,
     ...){
 
@@ -195,7 +196,7 @@ boot_ML <-
 
     v_0 <- estimate_ML(type, data, save_progress = FALSE)
 
-    n_obs <- nrow(data)
+    if(is.null(n_obs)) n_obs <- nrow(data)
 
     v_star <-
     lapply(1:n_boot, function(b){
@@ -212,6 +213,7 @@ boot_ML <-
           n_boot = n_boot,
           max_iter = max_iter,
           tol = tol,
+          n_obs = n_obs,
           seed = seed
         )
 
@@ -219,4 +221,27 @@ boot_ML <-
     )
 
   }
+
+getMLbootests <-
+  function(){
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
