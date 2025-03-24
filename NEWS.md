@@ -1,3 +1,17 @@
+
+## emery (Version 0.5.2)
+
+### Major changes
+
+- CRAN resubmission.
+- New functions: aggregate_boot_ML(), plot_boot_ML
+- 
+
+### Minor changes
+
+- Standardized outputs from estimate_ML for data types
+
+
 ## emery (Version 0.5.1)
 
 ### Major changes

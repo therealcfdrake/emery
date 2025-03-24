@@ -126,6 +126,8 @@ estimate_ML_ordinal <-
       outer_sum <- outer_sum + phi_0ij[j, ] * inner_sum
     }
     A_i <- outer_sum + 0.5 * colSums(phi_1ij * phi_0ij)
+    dim(A_i) <- c(1, n_method) # changed from vector
+    dimnames(A_i) <- list(NULL, method_names) # changed from vector
     return(A_i)
   }
   calc_y_k <- function(){
@@ -367,7 +369,6 @@ plot_ML_ordinal <-
 
       AUC_data <-
         ML_est@results$A_i_est |>
-        as.list() |>
         data.frame() |>
         tidyr::pivot_longer(everything(), names_to = "method", values_to = "value") |>
         dplyr::mutate(label = paste0(method, ": ", sprintf("%0.3f", value))) |>

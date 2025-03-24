@@ -15,3 +15,6 @@ boot_ex <- boot_ML(
   "binary",
   data = my_sim$generated_data,
   n_boot = 20)
+
+# Aggregate Bootstrap ML results by statistic
+aggregate_boot_ML(boot_ex)

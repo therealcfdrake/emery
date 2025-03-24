@@ -70,19 +70,7 @@ censor_data <- function(
 
 }
 
-aggregate_boot_ML <-
-  function(
-    boot_ML_result = NULL
-  ){
-    lapply(names(boot_ML_result$v_0@results), function(w){
-      lapply(1:length(boot_ML_result$v_star), function(l){
-        cbind("boot_id" = l, do.call(cbind, boot_ML_result$v_star[[l]][w]))
-      }) |>
-        do.call(what = rbind) |>
-        {\(.) if(!is.null(rownames(.))) cbind(data.frame(., row.names = NULL), row_id = rownames(.)) else data.frame(.)}() |>
-        tidyr::pivot_longer(-tidyr::any_of(c("boot_id", "row_id")), names_to = "col_id")
-    }) |> setNames(names(boot_ML_result$v_0@results))
-  }
+
 
 
 

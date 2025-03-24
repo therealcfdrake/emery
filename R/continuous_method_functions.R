@@ -113,8 +113,12 @@ estimate_ML_continuous <-
     }
   calc_next_mu_id <- function(z_kd_m){
       #returns vector of mu_id(m+1) estimates
+      mu_id <-
       colSums((z_kd_m * t_k)) /
         sum(z_kd_m)
+      dim(mu_id) <- c(1, n_method)
+      dimnames(mu_id) <- list(NULL, method_names)
+      return(mu_id)
     }
   calc_next_sigma_d <- function(z_kd_m, mu_id_m){
       # returns covariance matrix sigma_d(m+1) estimate
@@ -131,10 +135,18 @@ estimate_ML_continuous <-
       return(sigma_d)
     }
   calc_eta_j <- function(){
+    eta_j <-
     (mu_i1_m - mu_i0_m) / sqrt(diag(sigma_i1_m) + diag(sigma_i0_m))
+    dim(eta_j) <- c(1, n_method)
+    dimnames(eta_j) <- list(NULL, method_names)
+    return(eta_j)
   }
   calc_A_j <- function(){
+    A_j <-
     stats::setNames(stats::pnorm(eta_j_m), method_names)
+    dim(A_j) <- c(1, n_method)
+    dimnames(A_j) <- list(NULL, method_names)
+    return(A_j)
   }
 
   t_k <- as.matrix(data)
@@ -326,7 +338,6 @@ plot_ML_continuous <-
 
       AUC_data <-
         ML_est@results$A_j_est |>
-        as.list() |>
         data.frame() |>
         tidyr::pivot_longer(everything(), names_to = "method", values_to = "value") |>
         dplyr::mutate(label = paste0(method, ": ", sprintf("%0.3f", value))) |>
