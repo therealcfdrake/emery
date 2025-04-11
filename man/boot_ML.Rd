@@ -8,9 +8,9 @@ boot_ML(
   type = c("binary", "ordinal", "continuous"),
   data,
   n_boot = 100,
+  n_study = NULL,
   max_iter = 1000,
   tol = 1e-07,
-  n_obs = NULL,
   seed = NULL,
   ...
 )
@@ -24,6 +24,8 @@ be used to name each observation (\code{obs_names}) and column names will be use
 to name each measurement method (\code{method_names}).}
 
 \item{n_boot}{number of bootstrap estimates to compute}
+
+\item{n_study}{sample size to select for each bootstrap estimate}
 
 \item{max_iter}{The maximum number of EM algorithm iterations to compute before
 reporting a result.}

@@ -139,7 +139,7 @@ estimate_ML_binary <-
       mean(qk_m)
     }
 
-  if(!all(c("prev_1", "se_1", "sp_1") %in% names(init)) | any(sapply(init, is.null))){init <- pollinate_ML_binary(data)}
+  if(!all(c("prev_1", "se_1", "sp_1") %in% names(init)) | any(sapply(init, is.null))){init <- pollinate_ML(type = "binary", data = data)}
 
   method_names <- if(is.null(colnames(data))){name_thing("method", ncol(data))}else{colnames(data)}
   obs_names <- if(is.null(rownames(data))){name_thing("obs", nrow(data))}else{rownames(data)}
@@ -405,3 +405,24 @@ plot_ML_binary <-
 
   }
 
+#' @title Calculate AUC for single Se/Sp pair
+#' @description
+#' Calculate AUC
+#'
+#' @param se Sensitivity
+#' @param sp Specificity
+#' @returns Area under ROC curve
+#' @export
+
+bin_auc <-
+  function(se, sp){
+    rbind(se, sp) |>
+      apply(2, FUN = function(i){
+        matrix(
+          c(i[1], 1 - i[2], 1,
+            1 , 1     , 1,
+            0 , 0     , 1),
+          ncol = 3, byrow = TRUE
+        ) |> det() |> (\(x) x / 2 + 0.5)()
+      })
+}

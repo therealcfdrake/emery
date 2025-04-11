@@ -5,6 +5,7 @@ utils::globalVariables(
     "method",
     "sp",
     "se",
+    "color",
     "shape",
     "value",
     "group",
@@ -18,5 +19,8 @@ utils::globalVariables(
     "q_k1_est",
     "d",
     "name",
-    "qk_est")
+    "qk_est",
+    "boot_id",
+    "row_id",
+    "col_id")
   )

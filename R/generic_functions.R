@@ -155,10 +155,13 @@ pollinate_ML <-
     data,
     ...){
     type <- match.arg(type)
+
+    if(apply(data, 2, FUN = function(i){stats::sd(i, na.rm = TRUE)}) |> {\(.)any(. == 0)}()) warning("Data from one or more methods has zero variance", call. = FALSE, immediate. = TRUE)
+
     switch (type,
-            binary = pollinate_ML_binary(type, data, ...),
-            ordinal = pollinate_ML_ordinal(type, data, ...),
-            continuous = pollinate_ML_continuous(type, data, ...)
+            binary = pollinate_ML_binary(data, ...),
+            ordinal = pollinate_ML_ordinal(data, ...),
+            continuous = pollinate_ML_continuous(data, ...)
     )
   }
 
@@ -188,7 +191,6 @@ boot_ML <-
     n_study = NULL,
     max_iter = 1000,
     tol = 1e-7,
-    n_obs = NULL,
     seed = NULL,
     ...){
 
@@ -198,8 +200,8 @@ boot_ML <-
 
     v_0 <- estimate_ML(type, data, save_progress = FALSE)
 
-    if(is.null(n_obs)) n_obs <- nrow(data)
-    if(is.null(n_study)) n_study <- nrow(data)
+    n_obs <- nrow(data)
+    if(is.null(n_study)) n_study <- n_obs
 
     v_star <-
     lapply(1:n_boot, function(b){
@@ -225,6 +227,7 @@ boot_ML <-
   }
 
 
+#' @title Aggregate bootstrapped ML estimates
 #' @description
 #' `aggregate_boot_ML()` rearranges the bootstrap results from `boot_ML()` by
 #' statistic instead of bootstrap iteration.
@@ -255,43 +258,51 @@ aggregate_boot_ML <-
     }) |> stats::setNames(names(boot_ML_result$v_0@results))
   }
 
+#' @title Plot univariate distributions of bootstrapped ML estimates
 #' @description
 #' `plot_boot_ML()` creates univariate plots of bootstrap results from `boot_ML()`.
-#' @inheritParams estimate_ML
+#' @param boot_ML_result a result created by calling `boot_ML` on a `MultiMethodMLEstimate` object.
+#' @param probs distribution quantile values to indicate with vertical lines.
 #' @returns a named list of named plots.
 #' @export
 #' @import ggplot2
+#' @import dplyr
+#' @importFrom stats quantile
 
  plot_boot_ML <-
    function(boot_ML_result, probs = c(0.05, 0.50, 0.95)){
      agg_results <- aggregate_boot_ML(boot_ML_result)
-     stats_to_plot <- names(agg_results)[names(agg_results) %in% c("prev_est", "se_est", "sp_est", "A_i_est", "A_j_est")]
+     stats_to_plot <- names(agg_results)[names(agg_results) %in% c("prev_est", "se_est", "sp_est", "A_i_est", "A_j_est", "phi_0ij_est", "phi_1ij_est")]
 
      lapply(stats_to_plot, function(x){
 
-     q_summary <-
-       dplyr::reframe(agg_results[[x]],
-                      value = stats::quantile(value, probs, na.rm = TRUE),
-                      quantile = probs,
-                      .by = any_of(c("col_id", "row_id"))) #|>
-       # dplyr::summarize(upper = max(value), lower = min(value), .by = any_of(c("col_id", "row_id")))
+       if(x %in% c("phi_0ij_est", "phi_1ij_est")){
+         agg_results[[x]] <- agg_results[[x]] |>
+           dplyr::group_by(boot_id, col_id) |>
+           dplyr::mutate(value = cumsum(value), row_id = paste(row_id, "-", dplyr::lead(row_id))) |>
+           dplyr::slice_head(n = -1) |>
+           dplyr::ungroup()}
 
-     # print(q_summary)
+       q_summary <-
+         dplyr::reframe(agg_results[[x]],
+                        value = stats::quantile(value, probs, na.rm = TRUE),
+                        quantile = probs,
+                        .by = dplyr::any_of(c("col_id", "row_id")))
 
-       ggplot2::ggplot(agg_results[[x]], aes(x = value, color = if("row_id" %in% colnames(agg_results[[x]])) row_id else "Group")) +
-         ggplot2::geom_histogram(bins = 100, boundary = 0, position = "identity", aes(fill = after_scale(alpha(colour, 0.5)))) +
-         ggplot2::geom_vline(data = q_summary, lty = 2, aes(xintercept = value, color = if("row_id" %in% colnames(agg_results[[x]])) row_id else "Group")) +
-         ggplot2::facet_grid(col_id ~ .) +
-         ggplot2::scale_x_continuous(x, limits = c(0, 1), expand = ggplot2::expansion(add = 0.01), breaks = seq(0, 1, 0.1)) +
-         ggplot2::scale_color_brewer("ID", palette = "Set1") +
-         ggplot2::theme(panel.background = ggplot2::element_blank(),
-                        panel.grid = ggplot2::element_line(color = "gray80"),
-                        axis.text.x = ggplot2::element_text(angle = 90, hjust = 1, vjust = 0.5),
-                        axis.title.y = ggplot2::element_blank(),
-                        axis.text.y = ggplot2::element_blank(),
-                        axis.ticks.y = ggplot2::element_blank(),
-                        legend.position = "bottom") +
-         ggtitle("Bootstrap Distribution")
+         ggplot2::ggplot(agg_results[[x]], ggplot2::aes(x = value, color = if("row_id" %in% colnames(agg_results[[x]])) row_id else "Group")) +
+           ggplot2::geom_histogram(bins = 100, boundary = 0, position = "identity", ggplot2::aes(fill = ggplot2::after_scale(ggplot2::alpha(color, 0.5)))) +
+           ggplot2::geom_vline(data = q_summary, lty = 2, ggplot2::aes(xintercept = value, color = if("row_id" %in% colnames(agg_results[[x]])) row_id else "Group")) +
+           ggplot2::facet_grid(col_id ~ .) +
+           ggplot2::scale_x_continuous(x, limits = c(0, 1), expand = ggplot2::expansion(add = 0.01), breaks = seq(0, 1, 0.1)) +
+           ggplot2::scale_color_brewer("ID", palette = "Set1") +
+           ggplot2::theme(panel.background = ggplot2::element_blank(),
+                          panel.grid = ggplot2::element_line(color = "gray80"),
+                          axis.text.x = ggplot2::element_text(angle = 90, hjust = 1, vjust = 0.5),
+                          axis.title.y = ggplot2::element_blank(),
+                          axis.text.y = ggplot2::element_blank(),
+                          axis.ticks.y = ggplot2::element_blank(),
+                          legend.position = "bottom") +
+           ggplot2::ggtitle("Bootstrap Distribution")
      })
 
    }

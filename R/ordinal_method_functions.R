@@ -185,7 +185,7 @@ estimate_ML_ordinal <-
   if(is.null(level_names)){level_names <- name_thing("level", n_level)}
   if(!all(c("pi_1_1", "phi_1ij_1", "phi_0ij_1", "n_level") %in% names(init)) |
      any(sapply(init, is.null))
-     ){init <- pollinate_ML_ordinal(t_k, n_level = n_level, level_names = level_names)}
+     ){init <- pollinate_ML(type = "ordinal", data = t_k, n_level = n_level, level_names = level_names)}
 
   p_t <- init$pi_1_1
   phi_1ij_t <- init$phi_1ij_1
@@ -277,7 +277,8 @@ pollinate_ML_ordinal <-
   function(data,
            n_level = NULL,
            threshold_level = ceiling(n_level / 2),
-           level_names = NULL){
+           level_names = NULL,
+           ...){
 
     t_k <- data
     n_method <- ncol(t_k)

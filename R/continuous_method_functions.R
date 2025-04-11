@@ -159,7 +159,7 @@ estimate_ML_continuous <-
 
   if(!all(c("prev_1", "mu_i1_1", "sigma_i1_1", "mu_i0_1", "sigma_i0_1") %in% names(init)) |
      any(sapply(init, is.null))
-  ){init <- pollinate_ML_continuous(t_k)}
+  ){init <- pollinate_ML(type = "continuous", data = t_k)}
 
   prev_m <- init$prev_1
   mu_i1_m <- init$mu_i1_1
@@ -263,7 +263,8 @@ pollinate_ML_continuous <-
   function(data,
            prev = 0.5,
            q_seeds = c((1 - prev) / 2, 1 - (prev / 2)),
-           high_pos = TRUE){
+           high_pos = TRUE,
+           ...){
 
   method_names <- if(is.null(colnames(data))){name_thing("method", ncol(data))}else{colnames(data)}
   obs_names <- if(is.null(rownames(data))){name_thing("obs", nrow(data))}else{rownames(data)}
