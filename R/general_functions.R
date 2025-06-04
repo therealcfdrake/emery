@@ -181,6 +181,7 @@ pollinate_ML <-
 #' \item{v_star}{list containing results from each bootstrap resampling}
 #' \item{params}{list containing the parameters used}
 #' @export
+#' @importFrom utils setTxtProgressBar txtProgressBar
 #' @example man/examples/bootstrap_example.R
 
 boot_ML <-
@@ -203,26 +204,28 @@ boot_ML <-
     n_obs <- nrow(data)
     if(is.null(n_study)) n_study <- n_obs
 
+    pb <- txtProgressBar(min = 1, max = n_boot, style = 3)
+
     v_star <-
     lapply(1:n_boot, function(b){
       tmp <- data[sample(n_obs, n_study, replace = TRUE), ]
+      setTxtProgressBar(pb, b)
       estimate_ML(type, tmp, save_progress = FALSE)@results
     })
 
+    close(pb)
+
     return(
-      list(
+      new_boot_ML(
         v_0 = v_0,
         v_star = v_star,
-        params = list(
-          data = data,
-          n_boot = n_boot,
-          n_study = n_study,
-          max_iter = max_iter,
-          tol = tol,
-          n_obs = n_obs,
-          seed = seed
-        )
-      )
+        data = data,
+        n_boot = n_boot,
+        n_study = n_study,
+        max_iter = max_iter,
+        tol = tol,
+        n_obs = n_obs,
+        seed = seed)
     )
   }
 
@@ -260,17 +263,17 @@ aggregate_boot_ML <-
 
 #' @title Plot univariate distributions of bootstrapped ML estimates
 #' @description
-#' `plot_boot_ML()` creates univariate plots of bootstrap results from `boot_ML()`.
+#' `plot.boot_ML()` creates univariate plots of bootstrap results from `boot_ML()`.
 #' @param boot_ML_result a result created by calling `boot_ML` on a `MultiMethodMLEstimate` object.
-#' @param probs distribution quantile values to indicate with vertical lines.
+#' @param probs a vector of distribution quantile values to indicate with vertical lines.
 #' @returns a named list of named plots.
 #' @export
 #' @import ggplot2
 #' @import dplyr
-#' @importFrom stats quantile
+#' @importFrom stats quantile median
 
- plot_boot_ML <-
-   function(boot_ML_result, probs = c(0.05, 0.50, 0.95)){
+ plot.boot_ML <-
+   function(boot_ML_result, probs = c(0.10, 0.50, 0.90)){
      agg_results <- aggregate_boot_ML(boot_ML_result)
      stats_to_plot <- names(agg_results)[names(agg_results) %in% c("prev_est", "se_est", "sp_est", "A_i_est", "A_j_est", "phi_0ij_est", "phi_1ij_est")]
 
@@ -279,7 +282,8 @@ aggregate_boot_ML <-
        if(x %in% c("phi_0ij_est", "phi_1ij_est")){
          agg_results[[x]] <- agg_results[[x]] |>
            dplyr::group_by(boot_id, col_id) |>
-           dplyr::mutate(value = cumsum(value), row_id = paste(row_id, "-", dplyr::lead(row_id))) |>
+           dplyr::mutate(value = cumsum(value), row_id = paste0("j \u2264 ", row_id)) |>
+           # dplyr::mutate(value = cumsum(value), row_id = paste(row_id, "-", dplyr::lead(row_id))) |>
            dplyr::slice_head(n = -1) |>
            dplyr::ungroup()}
 
@@ -287,38 +291,30 @@ aggregate_boot_ML <-
          dplyr::reframe(agg_results[[x]],
                         value = stats::quantile(value, probs, na.rm = TRUE),
                         quantile = probs,
+                        lty = as.integer(ceiling(abs(rank(probs) - median(rank(probs)))) + 1),
                         .by = dplyr::any_of(c("col_id", "row_id")))
 
          ggplot2::ggplot(agg_results[[x]], ggplot2::aes(x = value, color = if("row_id" %in% colnames(agg_results[[x]])) row_id else "Group")) +
+           # ggplot2::stat_density(bounds = c(0, 1), fill = NA, ggplot2::aes(y = ggplot2::after_stat(group + count))) +
+           # ggplot2::geom_ribbon(stat = "density", bounds = c(0, 1), ggplot2::aes(fill = ggplot2::after_scale(ggplot2::alpha(color, 0.5)), ymax = ggplot2::after_stat(group + 2 * ndensity), ymin = ggplot2::after_stat(group))) +
            ggplot2::geom_histogram(bins = 100, boundary = 0, position = "identity", ggplot2::aes(fill = ggplot2::after_scale(ggplot2::alpha(color, 0.5)))) +
-           ggplot2::geom_vline(data = q_summary, lty = 2, ggplot2::aes(xintercept = value, color = if("row_id" %in% colnames(agg_results[[x]])) row_id else "Group")) +
+           ggplot2::geom_vline(data = q_summary, ggplot2::aes(xintercept = value, lty = lty, color = if("row_id" %in% colnames(agg_results[[x]])) row_id else "Group")) +
            ggplot2::facet_grid(col_id ~ .) +
            ggplot2::scale_x_continuous(x, limits = c(0, 1), expand = ggplot2::expansion(add = 0.01), breaks = seq(0, 1, 0.1)) +
-           ggplot2::scale_color_brewer("ID", palette = "Set1") +
+           ggplot2::scale_y_continuous(expand = ggplot2::expansion(mult = c(0, .1))) +
+           ggplot2::scale_color_brewer("ID", palette = "Dark2") +
+           ggplot2::scale_linetype_identity() +
            ggplot2::theme(panel.background = ggplot2::element_blank(),
-                          panel.grid = ggplot2::element_line(color = "gray80"),
+                          panel.grid = ggplot2::element_line(color = "gray90"),
                           axis.text.x = ggplot2::element_text(angle = 90, hjust = 1, vjust = 0.5),
                           axis.title.y = ggplot2::element_blank(),
                           axis.text.y = ggplot2::element_blank(),
                           axis.ticks.y = ggplot2::element_blank(),
+                          panel.grid.major.y = ggplot2::element_blank(),
+                          panel.grid.minor.y = ggplot2::element_blank(),
                           legend.position = "bottom") +
            ggplot2::ggtitle("Bootstrap Distribution")
      })
 
    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

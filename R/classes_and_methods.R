@@ -64,3 +64,34 @@ setMethod(
   function(x, ...){
     plot_ML(x, ...)
   })
+
+#' Create new boot_ML class object
+#' @description
+#' Wrapper for creating boot_ML class object.
+#' @inheritDotParams boot_ML
+#' @inheritParams estimate_ML
+#' @param v_0 MultiMethodMLEstimate S4 object
+#' @param v_star results slot of bootstrapped MultiMethodMLEstimate objects
+#' @return a boot_ML object
+#'
+new_boot_ML <-
+  function(v_0, v_star, data, n_boot, n_study, max_iter, tol, n_obs, seed){
+    structure(
+      .Data = list(
+        v_0 = v_0,
+        v_star = v_star,
+        params = list(
+          data = data,
+          n_boot = n_boot,
+          n_study = n_study,
+          max_iter = max_iter,
+          tol = tol,
+          n_obs = n_obs,
+          seed = seed
+        )
+      ),
+      class = "boot_ML"
+    )
+  }
+
+

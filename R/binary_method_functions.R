@@ -338,7 +338,7 @@ plot_ML_binary <-
       ggplot2::coord_fixed() +
       ggplot2::scale_y_continuous("Sensitivity", limits = c(0, 1), breaks = seq(0, 1, 0.1), expand = c(0, 0)) +
       ggplot2::scale_x_continuous("Specificity", limits = c(0, 1), breaks = seq(0, 1, 0.1), expand = c(0, 0)) +
-      ggplot2::scale_color_brewer(palette = "Set1") +
+      ggplot2::scale_color_brewer(palette = "Dark2") +
       ggplot2::theme(panel.background = element_blank(),
               panel.grid = element_line(color = "gray80"),
               axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
@@ -371,7 +371,7 @@ plot_ML_binary <-
           ggplot2::geom_line() +
           ggplot2::scale_y_continuous(j, limits = c(0, 1), breaks = seq(0, 1, 0.1), expand = c(0, 0)) +
           ggplot2::scale_x_continuous("Iteration", limits = c(0, ML_est@iter)) +
-          ggplot2::scale_color_brewer("", palette = "Set1", na.value = "gray30", drop = FALSE) +
+          ggplot2::scale_color_brewer("", palette = "Dark2", na.value = "gray30", drop = FALSE) +
           ggplot2::theme(panel.background = element_blank(),
                 panel.grid = element_line(color = "gray80"),
                 axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
@@ -385,7 +385,7 @@ plot_ML_binary <-
       ggplot2::geom_histogram(bins = 40, boundary = -0.025) +
       ggplot2::scale_y_continuous("Observations", limits = c(0, NA), expand = c(0, 0.5)) +
       ggplot2::scale_x_continuous(breaks = seq(0, 1, 0.05), expand = c(0, 0)) +
-      ggplot2::scale_fill_brewer("", palette = "Set1", na.value = "gray30", drop = FALSE) +
+      ggplot2::scale_fill_brewer("", palette = "Dark2", na.value = "gray30", drop = FALSE) +
       ggplot2::theme(panel.background = ggplot2::element_blank(),
                      panel.grid = ggplot2::element_line(color = "gray80"),
                      panel.spacing = unit(2, "lines"),
@@ -420,8 +420,8 @@ bin_auc <-
       apply(2, FUN = function(i){
         matrix(
           c(i[1], 1 - i[2], 1,
-            1 , 1     , 1,
-            0 , 0     , 1),
+            1, 1, 1,
+            0, 0, 1),
           ncol = 3, byrow = TRUE
         ) |> det() |> (\(x) x / 2 + 0.5)()
       })

@@ -70,7 +70,32 @@ censor_data <- function(
 
 }
 
+#' @title Multivariate Normal Densities
+#' @description
+#' Return the density of a point in a multivariate normal distribution
+#'
+#' @param x matrix of observations
+#' @param mu vector of method means
+#' @param sigma method covariance matrix
+
+dmvnorm <-
+  function(x, mu, sigma){
+    # x_minus_mu <- apply(x, 1, function(x) x - mu)
+    x_minus_mu <- t(x) - as.vector(mu)
+    k <- ncol(x)
+    v <- exp(-1 / 2 * t(x_minus_mu) %*% solve(sigma) %*% x_minus_mu) /
+      sqrt((2*pi)^k * det(sigma))
+    return(diag(v))
+  }
 
 
+#' @description
+#' Matrix multiplication with missing values
 
-
+# `%mmult%` <-
+#   function(A, B){
+#     Ar <- nrow(A)
+#     apply(B, 2, function(Bc)
+#       apply(A, 1, function(Ar)
+#         sum(Ar * Bc, na.rm = TRUE)))
+#   }
