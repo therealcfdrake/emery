@@ -89,9 +89,6 @@ dmvnorm <-
   }
 
 
-#' @description
-#' Matrix multiplication with missing values
-
 # `%mmult%` <-
 #   function(A, B){
 #     Ar <- nrow(A)

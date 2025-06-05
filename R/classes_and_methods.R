@@ -68,7 +68,8 @@ setMethod(
 #' Create new boot_ML class object
 #' @description
 #' Wrapper for creating boot_ML class object.
-#' @inheritDotParams boot_ML
+#' @param n_obs Number of observations in data
+#' @inheritParams boot_ML
 #' @inheritParams estimate_ML
 #' @param v_0 MultiMethodMLEstimate S4 object
 #' @param v_star results slot of bootstrapped MultiMethodMLEstimate objects

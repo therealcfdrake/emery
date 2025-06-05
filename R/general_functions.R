@@ -204,12 +204,12 @@ boot_ML <-
     n_obs <- nrow(data)
     if(is.null(n_study)) n_study <- n_obs
 
-    pb <- txtProgressBar(min = 1, max = n_boot, style = 3)
+    pb <- utils::txtProgressBar(min = 1, max = n_boot, style = 3)
 
     v_star <-
     lapply(1:n_boot, function(b){
       tmp <- data[sample(n_obs, n_study, replace = TRUE), ]
-      setTxtProgressBar(pb, b)
+      utils::setTxtProgressBar(pb, b)
       estimate_ML(type, tmp, save_progress = FALSE)@results
     })
 
@@ -264,17 +264,19 @@ aggregate_boot_ML <-
 #' @title Plot univariate distributions of bootstrapped ML estimates
 #' @description
 #' `plot.boot_ML()` creates univariate plots of bootstrap results from `boot_ML()`.
-#' @param boot_ML_result a result created by calling `boot_ML` on a `MultiMethodMLEstimate` object.
+#' @param x a result created by calling `boot_ML` on a `MultiMethodMLEstimate` object.
 #' @param probs a vector of distribution quantile values to indicate with vertical lines.
+#' @param ... additional arguments.
 #' @returns a named list of named plots.
+#' @method plot boot_ML
 #' @export
 #' @import ggplot2
 #' @import dplyr
 #' @importFrom stats quantile median
 
- plot.boot_ML <-
-   function(boot_ML_result, probs = c(0.10, 0.50, 0.90)){
-     agg_results <- aggregate_boot_ML(boot_ML_result)
+plot.boot_ML <-
+   function(x, probs = c(0.10, 0.50, 0.90), ...){
+     agg_results <- aggregate_boot_ML(x)
      stats_to_plot <- names(agg_results)[names(agg_results) %in% c("prev_est", "se_est", "sp_est", "A_i_est", "A_j_est", "phi_0ij_est", "phi_1ij_est")]
 
      lapply(stats_to_plot, function(x){
@@ -295,8 +297,6 @@ aggregate_boot_ML <-
                         .by = dplyr::any_of(c("col_id", "row_id")))
 
          ggplot2::ggplot(agg_results[[x]], ggplot2::aes(x = value, color = if("row_id" %in% colnames(agg_results[[x]])) row_id else "Group")) +
-           # ggplot2::stat_density(bounds = c(0, 1), fill = NA, ggplot2::aes(y = ggplot2::after_stat(group + count))) +
-           # ggplot2::geom_ribbon(stat = "density", bounds = c(0, 1), ggplot2::aes(fill = ggplot2::after_scale(ggplot2::alpha(color, 0.5)), ymax = ggplot2::after_stat(group + 2 * ndensity), ymin = ggplot2::after_stat(group))) +
            ggplot2::geom_histogram(bins = 100, boundary = 0, position = "identity", ggplot2::aes(fill = ggplot2::after_scale(ggplot2::alpha(color, 0.5)))) +
            ggplot2::geom_vline(data = q_summary, ggplot2::aes(xintercept = value, lty = lty, color = if("row_id" %in% colnames(agg_results[[x]])) row_id else "Group")) +
            ggplot2::facet_grid(col_id ~ .) +

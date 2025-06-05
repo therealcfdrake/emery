@@ -11,25 +11,27 @@ new_boot_ML(v_0, v_star, data, n_boot, n_study, max_iter, tol, n_obs, seed)
 
 \item{v_star}{results slot of bootstrapped MultiMethodMLEstimate objects}
 
-\item{...}{
-  Arguments passed on to \code{\link[=boot_ML]{boot_ML}}
-  \describe{
-    \item{\code{n_boot}}{number of bootstrap estimates to compute}
-    \item{\code{n_study}}{sample size to select for each bootstrap estimate}
-    \item{\code{seed}}{optional seed for RNG}
-    \item{\code{type}}{A string specifying the data type of the methods under evaluation.}
-    \item{\code{data}}{An \code{n_obs} by \code{n_method} \code{\link{matrix}} containing the
+\item{data}{An \code{n_obs} by \code{n_method} \code{\link{matrix}} containing the
 observed values for each method. If the dimensions are named, row names will
 be used to name each observation (\code{obs_names}) and column names will be used
 to name each measurement method (\code{method_names}).}
-    \item{\code{max_iter}}{The maximum number of EM algorithm iterations to compute before
+
+\item{n_boot}{number of bootstrap estimates to compute}
+
+\item{n_study}{sample size to select for each bootstrap estimate}
+
+\item{max_iter}{The maximum number of EM algorithm iterations to compute before
 reporting a result.}
-    \item{\code{tol}}{The minimum change in statistic estimates needed to continue
+
+\item{tol}{The minimum change in statistic estimates needed to continue
 iterating the EM algorithm.}
-  }}
+
+\item{n_obs}{Number of observations in data}
+
+\item{seed}{optional seed for RNG}
 }
 \value{
-boot_ML object
+a boot_ML object
 }
 \description{
 Wrapper for creating boot_ML class object.

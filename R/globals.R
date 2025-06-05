@@ -22,5 +22,6 @@ utils::globalVariables(
     "qk_est",
     "boot_id",
     "row_id",
-    "col_id")
+    "col_id",
+    "lty")
   )

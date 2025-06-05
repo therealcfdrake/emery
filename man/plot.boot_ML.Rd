@@ -4,12 +4,14 @@
 \alias{plot.boot_ML}
 \title{Plot univariate distributions of bootstrapped ML estimates}
 \usage{
-plot.boot_ML(boot_ML_result, probs = c(0.1, 0.5, 0.9))
+\method{plot}{boot_ML}(x, probs = c(0.1, 0.5, 0.9), ...)
 }
 \arguments{
-\item{boot_ML_result}{a result created by calling \code{boot_ML} on a \code{MultiMethodMLEstimate} object.}
+\item{x}{a result created by calling \code{boot_ML} on a \code{MultiMethodMLEstimate} object.}
 
 \item{probs}{a vector of distribution quantile values to indicate with vertical lines.}
+
+\item{...}{additional arguments.}
 }
 \value{
 a named list of named plots.

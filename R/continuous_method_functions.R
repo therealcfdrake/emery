@@ -97,10 +97,10 @@ estimate_ML_continuous <-
       sum(
         (z_k1_m *
            log((prev_m) * #paper is inconsistent on whether to use log p or log of product
-                 pmax(f_X_m, 1e-300))) + #small minimum value, algorithm fails is this reaches 0
+                 pmax(f_X_m, 1e-300))) + #small minimum value, algorithm fails if this reaches 0
           (z_k0_m *
              log((1 - prev_m) * #paper is inconsistent on whether to use log p or log of product
-                   pmax(f_Y_m, 1e-300))) #small minimum value, algorithm fails is this reaches 0
+                   pmax(f_Y_m, 1e-300))) #small minimum value, algorithm fails if this reaches 0
       )
     }
   calc_z_kd <- function(d){
@@ -114,8 +114,8 @@ estimate_ML_continuous <-
   calc_next_mu_id <- function(z_kd_m){
       #returns vector of mu_id(m+1) estimates
       mu_id <-
-      colSums((z_kd_m * t_k)) /
-        sum(z_kd_m)
+      colSums((z_kd_m * t_k), na.rm = TRUE) / # Allow missing
+        colSums(z_kd_m * t_k_not_NA)
       dim(mu_id) <- c(1, n_method)
       dimnames(mu_id) <- list(NULL, method_names)
       return(mu_id)
@@ -127,8 +127,10 @@ estimate_ML_continuous <-
       for(i in 1:n_method){
         for(j in 1:i){
           sigma_d[i, j] <-
-            sum(z_kd_m * (t_k[, i] - mu_id_m[i]) * (t_k[, j] - mu_id_m[j])) /
-            sum(z_kd_m)
+            sum(z_kd_m * (t_k[which(t_k_not_NA[, i] * t_k_not_NA[, j] == 1), i] - mu_id_m[i]) * (t_k[which(t_k_not_NA[, i] * t_k_not_NA[, j] == 1), j] - mu_id_m[j]), na.rm = TRUE) / # Allow missing
+            sum(z_kd_m * t_k_not_NA[, i] * t_k_not_NA[, j])
+            # sum(z_kd_m * (t_k[, i] - mu_id_m[i]) * (t_k[, j] - mu_id_m[j])) / # Original
+            # sum(z_kd_m)
           sigma_d[j, i] <- sigma_d[i, j]
         }
       }
@@ -154,6 +156,8 @@ estimate_ML_continuous <-
   n_obs <- nrow(t_k)
   method_names <- if(is.null(colnames(t_k))){name_thing("method", n_method)}else{colnames(t_k)}
   obs_names <- if(is.null(rownames(t_k))){name_thing("obs", n_obs)}else{rownames(t_k)}
+
+  t_k_not_NA <- !is.na(t_k)
 
   dimnames(t_k) <- list(obs_names, method_names)
 
@@ -181,8 +185,10 @@ estimate_ML_continuous <-
 
   for(iter in 1:max_iter){
 
-    f_X_m <- mvtnorm::dmvnorm(t_k, mean = mu_i1_m, sigma = sigma_i1_m)
-    f_Y_m <- mvtnorm::dmvnorm(t_k, mean = mu_i0_m, sigma = sigma_i0_m)
+    f_X_m <- dmvnorm(x = t_k, mu = mu_i1_m, sigma = sigma_i1_m)
+    f_Y_m <- dmvnorm(x = t_k, mu = mu_i0_m, sigma = sigma_i0_m)
+    # f_X_m <- mvtnorm::dmvnorm(t_k, mean = mu_i1_m, sigma = sigma_i1_m)
+    # f_Y_m <- mvtnorm::dmvnorm(t_k, mean = mu_i0_m, sigma = sigma_i0_m)
 
     eta_j_m <- calc_eta_j()
     A_j_m <- calc_A_j()
@@ -272,7 +278,7 @@ pollinate_ML_continuous <-
   # adjust seeds depending on whether high (default) or low values are associated with "positive" diagnosis
   q_seeds <- sort(q_seeds, decreasing = high_pos)
 
-  muD_mat <- apply(data, MARGIN = 2, stats::quantile, q_seeds)
+  muD_mat <- apply(data, MARGIN = 2, FUN = function(i){stats::quantile(i, probs = q_seeds, na.rm = TRUE)})
 
   mu_i1_1 <- unlist(muD_mat[1, ])
   mu_i0_1 <- unlist(muD_mat[2, ])
@@ -332,15 +338,15 @@ plot_ML_continuous <-
       z_kd <- if(b){ML_est@results$z_k1_est}else{ML_est@results$z_k0_est}
       apply(ML_est@data, 2, function(column){
         sapply(column, function(row, column){
-          sum(z_kd[which(column >= row)])
-        }, column = column)}) / sum(z_kd)
+          sum(z_kd[which(column >= row)], na.rm = TRUE) # Allow missing
+        }, column = column) / sum(z_kd * !is.na(column), na.rm = TRUE)}) # Allow missing
     }
     plot_ROC <- function(){
 
       AUC_data <-
         ML_est@results$A_j_est |>
         data.frame() |>
-        tidyr::pivot_longer(everything(), names_to = "method", values_to = "value") |>
+        tidyr::pivot_longer(dplyr::everything(), names_to = "method", values_to = "value") |>
         dplyr::mutate(label = paste0(method, ": ", sprintf("%0.3f", value))) |>
         dplyr::pull(label) |>
         paste(collapse = "\n")
@@ -355,7 +361,7 @@ plot_ML_continuous <-
         ggplot2::annotate("text", x = 0.6, y = 0.1, label = AUC_label, hjust = 0, vjust = 0) +
         ggplot2::scale_y_continuous("TPR", limits = c(0, 1), breaks = seq(0, 1, 0.1), expand = c(0, 0)) +
         ggplot2::scale_x_continuous("FPR", limits = c(0, 1), breaks = seq(0, 1, 0.1), expand = c(0, 0)) +
-        ggplot2::scale_color_brewer("", palette = "Set1", na.value = "gray30", drop = FALSE) +
+        ggplot2::scale_color_brewer("", palette = "Dark2", na.value = "gray30", drop = FALSE) +
         ggplot2::coord_fixed() +
         ggplot2::theme(panel.background = ggplot2::element_blank(),
                        panel.grid = ggplot2::element_line(color = "gray80"),
@@ -367,7 +373,7 @@ plot_ML_continuous <-
       do.call(rbind, purrr::pluck(ML_est, "prog", z_kd)) |>
         as.data.frame() |>
         stats::setNames(obs_names) |>
-        dplyr::mutate(iter = row_number()) |>
+        dplyr::mutate(iter = dplyr::row_number()) |>
         tidyr::pivot_longer(!iter, names_to = "group", values_to = "value") |>
         dplyr::left_join(dis_data, by = "group") |>
         tidyr::replace_na(list(true_D = "Class unknown")) |>
@@ -375,7 +381,7 @@ plot_ML_continuous <-
         ggplot2::geom_line() +
         ggplot2::scale_y_continuous(z_kd, limits = c(0, 1), breaks = seq(0, 1, 0.1), expand = c(0, 0)) +
         ggplot2::scale_x_continuous("Iteration", limits = c(0, ML_est@iter)) +
-        ggplot2::scale_color_brewer("", palette = "Set1", na.value = "gray30", drop = FALSE) +
+        ggplot2::scale_color_brewer("", palette = "Dark2", na.value = "gray30", drop = FALSE) +
         ggplot2::theme(panel.background = ggplot2::element_blank(),
                        panel.grid = ggplot2::element_line(color = "gray80"),
                        axis.text.x = ggplot2::element_text(angle = 90, hjust = 1, vjust = 0.5),
@@ -397,6 +403,7 @@ plot_ML_continuous <-
         tpr_i_long <- as.data.frame(as.table(tpr_i)),
         by = c("Var1", "Var2")
       ) |> stats::setNames(c("obs", "method", "fpr", "tpr")) |>
+      dplyr::filter(!is.na(fpr), !is.na(tpr)) |>
       dplyr::arrange(method, desc(fpr), desc(tpr))
 
     ROC_plot <- plot_ROC()
@@ -420,10 +427,10 @@ plot_ML_continuous <-
       ggplot2::geom_histogram(bins = 40) +
       ggplot2::scale_y_continuous("Observations", limits = c(0, NA), expand = c(0, 0.5)) +
       ggplot2::scale_x_continuous(breaks = seq(0, 1, 0.05), expand = c(0, 0)) +
-      ggplot2::scale_fill_brewer("", palette = "Set1", na.value = "gray30", drop = FALSE) +
+      ggplot2::scale_fill_brewer("", palette = "Dark2", na.value = "gray30", drop = FALSE) +
       ggplot2::theme(panel.background = ggplot2::element_blank(),
                      panel.grid = ggplot2::element_line(color = "gray80"),
-                     panel.spacing = unit(2, "lines"),
+                     panel.spacing = ggplot2::unit(2, "lines"),
                      strip.text.y.right = ggplot2::element_text(),
                      strip.background = ggplot2::element_rect(fill = "gray80", color = "black"),
                      axis.text.x = ggplot2::element_text(angle = 90, hjust = 1, vjust = 0.5),
@@ -437,3 +444,6 @@ plot_ML_continuous <-
         z_k1_hist = z_k1_hist))
 
     }
+
+
+

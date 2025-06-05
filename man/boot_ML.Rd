@@ -68,4 +68,7 @@ boot_ex <- boot_ML(
 
 # Aggregate Bootstrap ML results by statistic
 aggregate_boot_ML(boot_ex)
+
+# Plot Bootstrap ML estimate distributions
+plot(boot_ex)
 }
