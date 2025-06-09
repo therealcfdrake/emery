@@ -1,6 +1,6 @@
 Package: emery
 Title: Accuracy Statistic Estimation for Imperfect Gold Standards
-Version: 0.5.2
+Version: 0.6.0
 Authors@R: 
     person("Corie", "Drake", , "therealcfdrake@gmail.com", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0000-0002-1517-7103"))
@@ -25,6 +25,7 @@ Imports:
     tidyr,
     utils,
     methods,
+    mvtnorm,
     stringr,
     Rdpack
 RdMacros: Rdpack
