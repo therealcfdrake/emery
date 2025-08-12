@@ -108,18 +108,21 @@ estimate_ML_binary <-
            save_progress = TRUE){
 
   calc_A2 <- function(){
-      data |>
-        apply(1, FUN = function(y) (se_m ^ y) * ((1 - se_m) ^ (1 - y))) |>
-        apply(2, FUN = function(z) prod(z, na.rm = TRUE)) |>
-        (\(x) x * prev_m)()
-    }
+    (as.vector(se_m) ^ t(data)  * (as.vector(1 - se_m) ^ t(1 - data))) |>
+      (\(x) split(x, col(x)))() |>
+      lapply(prod, na.rm = TRUE) |>
+      unlist() |>
+      (\(x) x * (prev_m))() |>
+      stats::setNames(rownames(data))
+  }
   calc_B2 <- function(){
-      data |>
-        apply(1, FUN = function(y) ((1 - sp_m) ^ y) * (sp_m ^ (1 - y))) |>
-        apply(2, FUN = function(z) prod(z, na.rm = TRUE)) |>
-        (\(x) x * (1 - prev_m))()
-
-    }
+    (as.vector(1 - sp_m) ^ t(data) * (as.vector(sp_m) ^ t(1 - data))) |>
+      (\(x) split(x, col(x)))() |>
+      lapply(prod, na.rm = TRUE) |>
+      unlist() |>
+      (\(x) x * (1 - prev_m))() |>
+      stats::setNames(rownames(data))
+  }
   calc_qk <- function(A2, B2){
       A2 / (A2 + B2)
     }
