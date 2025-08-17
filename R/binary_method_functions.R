@@ -108,35 +108,33 @@ estimate_ML_binary <-
            save_progress = TRUE){
 
   calc_A2 <- function(){
-    (as.vector(se_m) ^ t(data)  * (as.vector(1 - se_m) ^ t(1 - data))) |>
-      (\(x) split(x, col(x)))() |>
-      lapply(prod, na.rm = TRUE) |>
-      unlist() |>
+    (sweep(data, 2, log(se_m), `*`) + sweep(1 - data, 2, log(1 - se_m), `*`)) |>
+      rowSums(, na.rm = TRUE) |>
+      exp() |>
       (\(x) x * (prev_m))() |>
-      stats::setNames(rownames(data))
-  }
+      stats::setNames(obs_names)
+    }
   calc_B2 <- function(){
-    (as.vector(1 - sp_m) ^ t(data) * (as.vector(sp_m) ^ t(1 - data))) |>
-      (\(x) split(x, col(x)))() |>
-      lapply(prod, na.rm = TRUE) |>
-      unlist() |>
+    (sweep(data, 2, log(1 - sp_m), `*`) + sweep(1 - data, 2, log(sp_m), `*`)) |>
+      rowSums(, na.rm = TRUE) |>
+      exp() |>
       (\(x) x * (1 - prev_m))() |>
-      stats::setNames(rownames(data))
-  }
+      stats::setNames(obs_names)
+    }
   calc_qk <- function(A2, B2){
       A2 / (A2 + B2)
     }
   calc_next_se <- function(){
-      data_mat <- as.matrix(data)
-      data_mat[is.na(data_mat)] <- 0 # added to handle NA, used to calc appropriate denominators
-      (qk_m %*% data_mat) / (qk_m %*% !is.na(as.matrix(data)))
-      # (qk_m %*% as.matrix(data)) / sum(qk_m) # original function before changes to accept NA
+    dat_mat <- data
+    dat_mat[missing_obs] <- 0 # added to handle NA, used to calc appropriate denominators
+    (qk_m %*% dat_mat) / (qk_m %*% !missing_obs)
+    # (qk_m %*% as.matrix(data)) / sum(qk_m) # original function before changes to accept NA
     }
   calc_next_sp <- function(){
-      data_mat <- 1 - as.matrix(data)
-      data_mat[is.na(data_mat)] <- 0 # added to handle NA, used to calc appropriate denominators
-      ((1 - qk_m) %*% data_mat) / ((1 - qk_m) %*% !is.na(as.matrix(data)))
-      # ((1 - qk_m) %*% (1 - as.matrix(data))) / sum(1 - qk_m) # original function before changes to accept NA
+    dat_mat <- 1 - data
+    dat_mat[missing_obs] <- 0 # added to handle NA, used to calc appropriate denominators
+    ((1 - qk_m) %*% dat_mat) / ((1 - qk_m) %*% !missing_obs)
+    # ((1 - qk_m) %*% (1 - as.matrix(data))) / sum(1 - qk_m) # original function before changes to accept NA
     }
   calc_next_prev <- function(){
       mean(qk_m)
@@ -147,7 +145,9 @@ estimate_ML_binary <-
   method_names <- if(is.null(colnames(data))){name_thing("method", ncol(data))}else{colnames(data)}
   obs_names <- if(is.null(rownames(data))){name_thing("obs", nrow(data))}else{rownames(data)}
 
+  data <- as.matrix(data)
   dimnames(data) <- list(obs_names, method_names)
+  missing_obs <- is.na(data)
 
   # starting values
   se_m <- init$se_1

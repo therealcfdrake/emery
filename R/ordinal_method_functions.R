@@ -134,24 +134,22 @@ estimate_ML_ordinal <-
     # n_method <- ncol(t_k) -> i
     # n_level               -> j
     # n_obs <- nrow(t_k)    -> k
-    y_k <- list()
-    for(k in 1:n_obs){
-      tmp_y_k <- matrix(nrow = n_level, ncol = n_method, dimnames = list(level_names, method_names))
-      for(j in 1:n_level){
-        for(i in 1:n_method){
-          tmp_y_k[j, i] <-
-            as.numeric(
-              (!is.na(t_k[k, i])) & # addition to tolerate missing values
-                t_k[k, i] == j # original code
-              )
-        }
-      }
-      y_k[[k]] <- tmp_y_k
-    }
+    y_k <-
+      lapply(1:n_level, function(j){
+        as.numeric(!missing_obs &  # addition to tolerate missing values
+                     t_k == j) # original code
+      }) |> unlist() |>
+      array(dim = c(n_obs, n_method, n_level)) |>
+      aperm(c(3, 2, 1))
+    dimnames(y_k) <- list(level_names, method_names, obs_names)
     return(y_k)
   }
   calc_g_d <- function(phi_dij){
-    g_d <- lapply(y_k, function(k) prod(phi_dij ^ k)) |> unlist() |> pmax(1e-300)
+    g_d <- sweep(y_k, MARGIN = 1:2, log(phi_dij), `*`) |>
+      matrix(nrow = n_method * n_level) |>
+      colSums() |>
+      exp() |>
+      pmax(1e-300)
     return(g_d)
   }
   calc_q_kd <- function(d){
@@ -164,13 +162,16 @@ estimate_ML_ordinal <-
     mean(q_k1)
   }
   calc_next_phi_dij <- function(q_kd){
-    denom <- as.vector(q_kd %*% !is.na(t_k)) # missing value correction. only observations which a method had a response are summed
-    t(
-      lapply(1:length(q_kd), function(k){q_kd[k] * y_k[[k]]}) |>
-        Reduce(f = "+", x = _) |>
-        t() / denom
-    )
-      # sum(q_kd) # original denominator
+    denom <- as.vector(q_kd %*% !missing_obs) # missing value correction. only observations in which a method had a response are summed
+    # sum(q_kd) # original denominator
+    quotient <-
+      sweep(y_k, 3, q_kd, `*`) |>
+      matrix(nrow = n_level * n_method) |>
+      rowSums() |>
+      matrix(nrow = n_level) |>
+      sweep(2, denom, `/`)
+    dimnames(quotient) <- list(level_names, method_names)
+    return(quotient)
   }
 
   t_k <- as.matrix(data)
@@ -180,6 +181,7 @@ estimate_ML_ordinal <-
   obs_names <- if(is.null(rownames(t_k))){name_thing("obs", n_obs)}else{rownames(t_k)}
 
   dimnames(t_k) <- list(obs_names, method_names)
+  missing_obs <- is.na(t_k)
 
   if(is.null(init$n_level)){n_level <- sum(!is.na(unique(as.vector(t_k))))}else{n_level <- init$n_level}
   if(is.null(level_names)){level_names <- name_thing("level", n_level)}
