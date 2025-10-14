@@ -169,7 +169,8 @@ estimate_ML_ordinal <-
       matrix(nrow = n_level * n_method) |>
       rowSums() |>
       matrix(nrow = n_level) |>
-      sweep(2, denom, `/`)
+      sweep(2, denom, `/`) |>
+      pmax(1e-300)
     dimnames(quotient) <- list(level_names, method_names)
     return(quotient)
   }
