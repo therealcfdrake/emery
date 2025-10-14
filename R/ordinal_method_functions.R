@@ -116,7 +116,7 @@ estimate_ML_ordinal <-
       sum(c(
         q_k0_t * log(g_0_t),
         q_k1_t * log(g_1_t)
-      ))
+      ), na.rm = TRUE)
     return(l_cond)
   }
   calc_A_i <- function(phi_1ij, phi_0ij){
