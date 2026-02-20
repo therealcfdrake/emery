@@ -9,9 +9,14 @@
 \alias{pollinate_ML_continuous}
 \title{Generate seed values for EM algorithm}
 \usage{
-pollinate_ML(type = c("binary", "ordinal", "continuous"), data, ...)
+pollinate_ML(
+  type = c("binary", "ordinal", "continuous"),
+  data,
+  freqs = NULL,
+  ...
+)
 
-pollinate_ML_binary(data, ...)
+pollinate_ML_binary(data, freqs = NULL, ...)
 
 pollinate_ML_ordinal(
   data,
@@ -36,6 +41,10 @@ pollinate_ML_continuous(
 observed values for each method. If the dimensions are named, row names will
 be used to name each observation (\code{obs_names}) and column names will be used
 to name each measurement method (\code{method_names}).}
+
+\item{freqs}{A vector of elements \code{n_obs} long representing the number of times
+each row in \code{data} was observed. Used when \code{data} is a summary of unique response
+combinations.}
 
 \item{...}{Additional arguments}
 

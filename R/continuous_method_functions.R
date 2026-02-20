@@ -83,6 +83,7 @@ generate_multimethod_continuous <-
 #'
 estimate_ML_continuous <-
   function(data,
+           freqs = NULL,
            init = list(
              prev_1 = NULL,
              mu_i1_1 = NULL,

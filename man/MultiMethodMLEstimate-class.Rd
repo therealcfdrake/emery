@@ -12,6 +12,10 @@ S4 object containing the results of multi-method ML accuracy estimates
 \describe{
 \item{\code{results}}{a list of estimated accuracy statistics}
 
+\item{\code{data}}{a matrix containing the raw data used for estimation}
+
+\item{\code{freqs}}{a vector containing the frequencies at which each row in \code{data} was observed}
+
 \item{\code{names}}{a list containing vectors of names of various dimensions}
 
 \item{\code{data}}{a copy of the data used to generate the estimated values}

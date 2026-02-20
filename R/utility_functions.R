@@ -6,6 +6,7 @@
 #'
 #' @return a vector of unique names
 #' @importFrom stringr str_pad
+#' @export
 
 name_thing <-
   function(thing = "", n = 1){
@@ -70,6 +71,31 @@ censor_data <- function(
 
 }
 
+#' @title Reduce Data by Summarizing Observations
+#' @description
+#' Extract unique rows from a data frame. Collect row names of duplicate observations and frequencies of each.
+#'
+#' @inheritParams estimate_ML
+#' @return list containing matrix of unique rows with names and frequencies of duplicates.
+#' @export
+
+unique_obs_summary <- function(data){
+
+  unique_obs <- unique(as.matrix(data))
+  duplicate_obs <- lapply(1:nrow(unique_obs),
+                          function(r){rownames(data[sapply(1:nrow(data), function(s){
+                            identical(data[s, ], unique_obs[r, ])}), , drop = FALSE])})
+  obs_freq <- vapply(duplicate_obs, length, 1)
+
+  list(
+    unique_obs = unique_obs,
+    duplicate_obs = duplicate_obs,
+    obs_freq = obs_freq
+  )
+
+}
+
+
 #' @title Multivariate Normal Densities
 #' @description
 #' Return the density of a point in a multivariate normal distribution
@@ -80,7 +106,6 @@ censor_data <- function(
 
 dmvnorm <-
   function(x, mu, sigma){
-    # x_minus_mu <- apply(x, 1, function(x) x - mu)
     x_minus_mu <- t(x) - as.vector(mu)
     k <- ncol(x)
     v <- exp(-1 / 2 * t(x_minus_mu) %*% solve(sigma) %*% x_minus_mu) /

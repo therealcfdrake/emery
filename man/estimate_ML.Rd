@@ -12,6 +12,7 @@
 estimate_ML(
   type = c("binary", "ordinal", "continuous"),
   data,
+  freqs = NULL,
   init = list(NULL),
   max_iter = 1000,
   tol = 1e-07,
@@ -21,14 +22,16 @@ estimate_ML(
 
 estimate_ML_binary(
   data,
+  freqs = NULL,
   init = list(prev_1 = NULL, se_1 = NULL, sp_1 = NULL),
-  max_iter = 100,
+  max_iter = 1000,
   tol = 1e-07,
   save_progress = TRUE
 )
 
 estimate_ML_continuous(
   data,
+  freqs = NULL,
   init = list(prev_1 = NULL, mu_i1_1 = NULL, sigma_i1_1 = NULL, mu_i0_1 = NULL,
     sigma_i0_1 = NULL),
   max_iter = 100,
@@ -38,6 +41,7 @@ estimate_ML_continuous(
 
 estimate_ML_ordinal(
   data,
+  freqs = NULL,
   init = list(pi_1_1 = NULL, phi_1ij_1 = NULL, phi_0ij_1 = NULL, n_level = NULL),
   level_names = NULL,
   max_iter = 1000,
@@ -52,6 +56,10 @@ estimate_ML_ordinal(
 observed values for each method. If the dimensions are named, row names will
 be used to name each observation (\code{obs_names}) and column names will be used
 to name each measurement method (\code{method_names}).}
+
+\item{freqs}{A vector of elements \code{n_obs} long representing the number of times
+each row in \code{data} was observed. Used when \code{data} is a summary of unique response
+combinations.}
 
 \item{init}{An optional list of initial values used to seed the EM algorithm.
 If initial values are not provided, the \code{pollinate_ML()} function will be

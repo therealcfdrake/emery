@@ -1,6 +1,8 @@
 
 #' S4 object containing the results of multi-method ML accuracy estimates
 #' @slot results a list of estimated accuracy statistics
+#' @slot data a matrix containing the raw data used for estimation
+#' @slot freqs a vector containing the frequencies at which each row in `data` was observed
 #' @slot names a list containing vectors of names of various dimensions
 #' @slot data a copy of the data used to generate the estimated values
 #' @slot iter an integer number of iterations needed for the EM algorithm to converge
@@ -15,6 +17,7 @@ setClass(
   slots = c(
     results = "list",
     data = "matrix",
+    freqs = "numeric",
     names = "list",
     iter = "numeric",
     prog = "list",
@@ -23,6 +26,7 @@ setClass(
   prototype = list(
     results = list(),
     data = matrix(),
+    freqs = c(),
     names = list(),
     iter = 0,
     prog = list(),
@@ -76,13 +80,14 @@ setMethod(
 #' @return a boot_ML object
 #'
 new_boot_ML <-
-  function(v_0, v_star, data, n_boot, n_study, max_iter, tol, n_obs, seed){
+  function(v_0, v_star, data, freqs = NULL, n_boot, n_study, max_iter, tol, n_obs, seed){
     structure(
       .Data = list(
         v_0 = v_0,
         v_star = v_star,
         params = list(
           data = data,
+          freqs = freqs,
           n_boot = n_boot,
           n_study = n_study,
           max_iter = max_iter,
@@ -95,4 +100,19 @@ new_boot_ML <-
     )
   }
 
+setGeneric("getResults", function(x){
+  standardGeneric("getResults")
+  })
+
+setMethod("getResults", signature("MultiMethodMLEstimate"), function(x){
+  x@results
+})
+
+setGeneric("getNames", function(x, name){
+  standardGeneric("getNames")
+  })
+
+setMethod("getNames", signature("MultiMethodMLEstimate"), function(x, name){
+  x@names[name]
+})
 

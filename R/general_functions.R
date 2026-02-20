@@ -54,6 +54,9 @@ generate_multimethod_data <-
 #' observed values for each method. If the dimensions are named, row names will
 #' be used to name each observation (`obs_names`) and column names will be used
 #' to name each measurement method (`method_names`).
+#' @param freqs A vector of elements `n_obs` long representing the number of times
+#' each row in `data` was observed. Used when `data` is a summary of unique response
+#' combinations.
 #' @param init An optional list of initial values used to seed the EM algorithm.
 #'  If initial values are not provided, the `pollinate_ML()` function will be
 #'  called on the data to estimate starting values. It is recommended to try several
@@ -102,6 +105,7 @@ estimate_ML <-
   function(
     type = c("binary", "ordinal", "continuous"),
     data,
+    freqs = NULL,
     init = list(NULL),
     max_iter = 1000,
     tol = 1e-7,
@@ -109,9 +113,9 @@ estimate_ML <-
     ...){
     type <- match.arg(type)
     switch (type,
-            binary = estimate_ML_binary(data = data, init = init, max_iter = max_iter, tol = tol, save_progress = save_progress, ... = ...),
-            ordinal = estimate_ML_ordinal(data = data, init = init, max_iter = max_iter, tol = tol, save_progress = save_progress, ... = ...),
-            continuous = estimate_ML_continuous(data = data, init = init, max_iter = max_iter, tol = tol, save_progress = save_progress, ... = ...)
+            binary = estimate_ML_binary(data = data, freqs = freqs, init = init, max_iter = max_iter, tol = tol, save_progress = save_progress, ... = ...),
+            ordinal = estimate_ML_ordinal(data = data, freqs = freqs, init = init, max_iter = max_iter, tol = tol, save_progress = save_progress, ... = ...),
+            continuous = estimate_ML_continuous(data = data, freqs = freqs, init = init, max_iter = max_iter, tol = tol, save_progress = save_progress, ... = ...)
     )
   }
 
@@ -147,23 +151,89 @@ plot_ML <-
 #' @param ... Additional arguments
 #' @order 1
 #' @returns a list of EM algorithm initialization values
+#' @importFrom stats sd
 #' @export
 
 pollinate_ML <-
   function(
     type = c("binary", "ordinal", "continuous"),
     data,
+    freqs = NULL,
     ...){
     type <- match.arg(type)
 
     if(apply(data, 2, FUN = function(i){stats::sd(i, na.rm = TRUE)}) |> {\(.)any(. == 0)}()) warning("Data from one or more methods has zero variance", call. = FALSE, immediate. = TRUE)
 
     switch (type,
-            binary = pollinate_ML_binary(data, ...),
+            binary = pollinate_ML_binary(data, freqs = freqs, ...),
             ordinal = pollinate_ML_ordinal(data, ...),
             continuous = pollinate_ML_continuous(data, ...)
     )
   }
+
+
+# @title Bootstrap ML accuracy statistic estimation for multi-method data
+# @description
+# `boot_ML()` is a function used to generate bootstrap estimates of results generated
+# by `estimate_ML()` primarily for use in creating nonparametric confidence intervals.
+#
+# @inheritParams estimate_ML
+#
+# @param n_boot number of bootstrap estimates to compute
+# @param n_study sample size to select for each bootstrap estimate
+# @param seed optional seed for RNG
+# @returns a list containing accuracy estimates, `v`, and the parameters used.
+# \item{v_0}{result from original data}
+# \item{v_star}{list containing results from each bootstrap resampling}
+# \item{params}{list containing the parameters used}
+# @export
+# @importFrom utils setTxtProgressBar txtProgressBar
+# @example man/examples/bootstrap_example.R
+#
+# boot_ML <-
+#   function(
+#     type = c("binary", "ordinal", "continuous"),
+#     data,
+#     n_boot = 100,
+#     n_study = NULL,
+#     max_iter = 1000,
+#     tol = 1e-7,
+#     seed = NULL,
+#     ...){
+#
+#   if(!is.null(seed)) set.seed(seed)
+#
+#     type <- match.arg(type)
+#
+#     v_0 <- estimate_ML(type, data, save_progress = FALSE)
+#
+#     n_obs <- nrow(data)
+#     if(is.null(n_study)) n_study <- n_obs
+#
+#     pb <- utils::txtProgressBar(min = 1, max = n_boot, style = 3)
+#
+#     v_star <-
+#     lapply(1:n_boot, function(b){
+#       tmp <- data[sample(n_obs, n_study, replace = TRUE), ]
+#       utils::setTxtProgressBar(pb, b)
+#       estimate_ML(type, tmp, save_progress = FALSE)@results
+#     })
+#
+#     close(pb)
+#
+#     return(
+#       new_boot_ML(
+#         v_0 = v_0,
+#         v_star = v_star,
+#         data = data,
+#         n_boot = n_boot,
+#         n_study = n_study,
+#         max_iter = max_iter,
+#         tol = tol,
+#         n_obs = n_obs,
+#         seed = seed)
+#     )
+#   }
 
 
 #' @title Bootstrap ML accuracy statistic estimation for multi-method data
@@ -175,6 +245,7 @@ pollinate_ML <-
 #'
 #' @param n_boot number of bootstrap estimates to compute
 #' @param n_study sample size to select for each bootstrap estimate
+#' @param randomize_init boolean defining whether `init` values should be randomize with each bootstrap.
 #' @param seed optional seed for RNG
 #' @returns a list containing accuracy estimates, `v`, and the parameters used.
 #' \item{v_0}{result from original data}
@@ -188,30 +259,38 @@ boot_ML <-
   function(
     type = c("binary", "ordinal", "continuous"),
     data,
+    freqs = NULL,
     n_boot = 100,
     n_study = NULL,
+    randomize_init = FALSE,
     max_iter = 1000,
     tol = 1e-7,
     seed = NULL,
     ...){
 
-  if(!is.null(seed)) set.seed(seed)
+    if(!is.null(seed)) set.seed(seed)
 
     type <- match.arg(type)
 
-    v_0 <- estimate_ML(type, data, save_progress = FALSE)
+    v_0 <- estimate_ML(type = type, data = data, freqs = freqs, max_iter = 1000, tol = 1e-7, save_progress = FALSE) ####
 
     n_obs <- nrow(data)
-    if(is.null(n_study)) n_study <- n_obs
+    n_method <- ncol(data)
+
+    if(is.null(freqs)) freqs <- rep(1, n_obs)
+    if(is.null(n_study)) n_study <- sum(freqs) ####
 
     pb <- utils::txtProgressBar(min = 1, max = n_boot, style = 3)
 
     v_star <-
-    lapply(1:n_boot, function(b){
-      tmp <- data[sample(n_obs, n_study, replace = TRUE), ]
-      utils::setTxtProgressBar(pb, b)
-      estimate_ML(type, tmp, save_progress = FALSE)@results
-    })
+      lapply(1:n_boot, function(b){
+        tmp <- factor(sample(n_obs, n_study, replace = TRUE, prob = freqs), levels = 1:n_obs) |> table() |> as.vector()
+        if(randomize_init){
+          init <- random_start(type = type, n_method = n_method, method_names = getNames(v_0, "method_names"))
+        }else{init <- pollinate_ML(type = type, data = data, freqs = freqs)}
+        utils::setTxtProgressBar(pb, b)
+        getResults(estimate_ML(type = type, data = data, freqs = tmp, max_iter = 1000, tol = 1e-7, save_progress = FALSE, ...))
+      })
 
     close(pb)
 
@@ -220,12 +299,14 @@ boot_ML <-
         v_0 = v_0,
         v_star = v_star,
         data = data,
+        freqs = freqs,
         n_boot = n_boot,
         n_study = n_study,
         max_iter = max_iter,
         tol = tol,
         n_obs = n_obs,
-        seed = seed)
+        seed = seed,
+        ...)
     )
   }
 

@@ -29,16 +29,6 @@ generate_multimethod_binary <-
     # Define the True disease state based on input criteria
     dis <- define_disease_state(D, n_obs, prev)
 
-    # Create dataframe to (optionally) randomly censor observations such that
-    # only "n_method_subset" results are reported for each observation
-      # lapply(1:dis$n_obs, function(i)
-      #   if(!first_reads_all){sample(c(rep(1, n_method_subset), rep(NA, n_method - n_method_subset)), n_method, replace = FALSE)
-      #   }else{
-      #     c(1, sample(c(rep(1, n_method_subset - 1), rep(NA, n_method - n_method_subset)), n_method - 1, replace = FALSE))
-      #   }
-      # ) |>
-      # do.call(what = rbind, args = _)
-
     subset_matrix <-
       censor_data(
         n_obs = dis$n_obs,
@@ -96,166 +86,178 @@ generate_multimethod_binary <-
 #' @rdname estimate_ML
 #' @order 2
 #' @export
+#' @importFrom stats weighted.mean
 
 estimate_ML_binary <-
   function(data,
+           freqs = NULL,
            init = list(
              prev_1 = NULL,
              se_1 = NULL,
              sp_1 = NULL),
-           max_iter = 100,
+           max_iter = 1000,
            tol = 1e-7,
            save_progress = TRUE){
 
-  calc_A2 <- function(){
-    (sweep(data, 2, log(se_m), `*`) + sweep(1 - data, 2, log(1 - se_m), `*`)) |>
-      rowSums(, na.rm = TRUE) |>
-      exp() |>
-      (\(x) x * (prev_m))() |>
-      stats::setNames(obs_names)
+    calc_A2 <- function(){
+      (sweep(data, 2, log(se_m), `*`) + sweep(1 - data, 2, log(1 - se_m), `*`)) |>
+        rowSums(, na.rm = TRUE) |>
+        exp() |>
+        (\(x) x * (prev_m))() |>
+        stats::setNames(obs_names)
     }
-  calc_B2 <- function(){
-    (sweep(data, 2, log(1 - sp_m), `*`) + sweep(1 - data, 2, log(sp_m), `*`)) |>
-      rowSums(, na.rm = TRUE) |>
-      exp() |>
-      (\(x) x * (1 - prev_m))() |>
-      stats::setNames(obs_names)
+    calc_B2 <- function(){
+      (sweep(data, 2, log(1 - sp_m), `*`) + sweep(1 - data, 2, log(sp_m), `*`)) |>
+        rowSums(, na.rm = TRUE) |>
+        exp() |>
+        (\(x) x * (1 - prev_m))() |>
+        stats::setNames(obs_names)
     }
-  calc_qk <- function(A2, B2){
+    calc_qk <- function(A2, B2){
       A2 / (A2 + B2)
     }
-  calc_next_se <- function(){
-    dat_mat <- data
-    dat_mat[missing_obs] <- 0 # added to handle NA, used to calc appropriate denominators
-    (qk_m %*% dat_mat) / (qk_m %*% !missing_obs)
-    # (qk_m %*% as.matrix(data)) / sum(qk_m) # original function before changes to accept NA
+    calc_next_se <- function(){
+      dat_mat <- data
+      dat_mat[missing_obs] <- 0 # added to handle NA, used to calc appropriate denominators
+      ((qk_m * freqs) %*% dat_mat) / ((qk_m * freqs) %*% !missing_obs)
+      # (qk_m %*% as.matrix(data)) / sum(qk_m) # original function before changes to accept NA
     }
-  calc_next_sp <- function(){
-    dat_mat <- 1 - data
-    dat_mat[missing_obs] <- 0 # added to handle NA, used to calc appropriate denominators
-    ((1 - qk_m) %*% dat_mat) / ((1 - qk_m) %*% !missing_obs)
-    # ((1 - qk_m) %*% (1 - as.matrix(data))) / sum(1 - qk_m) # original function before changes to accept NA
+    calc_next_sp <- function(){
+      dat_mat <- 1 - data
+      dat_mat[missing_obs] <- 0 # added to handle NA, used to calc appropriate denominators
+      (((1 - qk_m) * freqs) %*% dat_mat) / (((1 - qk_m) * freqs) %*% !missing_obs)
+      # ((1 - qk_m) %*% (1 - as.matrix(data))) / sum(1 - qk_m) # original function before changes to accept NA
     }
-  calc_next_prev <- function(){
-      mean(qk_m)
+    calc_next_prev <- function(){
+      stats::weighted.mean(qk_m, freqs)
     }
 
-  if(!all(c("prev_1", "se_1", "sp_1") %in% names(init)) | any(sapply(init, is.null))){init <- pollinate_ML(type = "binary", data = data)}
+    if(!all(c("prev_1", "se_1", "sp_1") %in% names(init)) | any(sapply(init, is.null))){init <- pollinate_ML(type = "binary", data = data)}
 
-  method_names <- if(is.null(colnames(data))){name_thing("method", ncol(data))}else{colnames(data)}
-  obs_names <- if(is.null(rownames(data))){name_thing("obs", nrow(data))}else{rownames(data)}
+    method_names <- if(is.null(colnames(data))){name_thing("method", ncol(data))}else{colnames(data)}
+    obs_names <- if(is.null(rownames(data))){name_thing("obs", nrow(data))}else{rownames(data)}
 
-  data <- as.matrix(data)
-  dimnames(data) <- list(obs_names, method_names)
-  missing_obs <- is.na(data)
+    data <- as.matrix(data)
+    dimnames(data) <- list(obs_names, method_names)
+    missing_obs <- is.na(data)
+    freqs <- if(is.null(freqs)){rep(1, nrow(data))}else{freqs}
 
-  # starting values
-  se_m <- init$se_1
-  sp_m <- init$sp_1
-  prev_m <- init$prev_1
+    # starting values
+    se_m <- init$se_1
+    sp_m <- init$sp_1
+    prev_m <- init$prev_1
 
-  # initialize lists
-  list_se <- list()
-  list_sp <- list()
-  list_prev <- list()
-  list_A2 <- list()
-  list_B2 <- list()
-  list_qk <- list()
+    # initialize lists
+    list_se <- list()
+    list_sp <- list()
+    list_prev <- list()
+    list_A2 <- list()
+    list_B2 <- list()
+    list_qk <- list()
 
-  # iterate
+    # iterate
 
-  for(iter in 1:(max_iter)){
+    for(iter in 1:(max_iter)){
 
-    A2_m <- calc_A2()
-    B2_m <- calc_B2()
-    qk_m <- calc_qk(A2_m, B2_m)
+      A2_m <- calc_A2()
+      B2_m <- calc_B2()
+      qk_m <- calc_qk(A2_m, B2_m)
 
-    list_se <- c(list_se, list(se_m))
-    list_sp <- c(list_sp, list(sp_m))
-    list_prev <- c(list_prev, list(prev_m))
-    list_A2 <- c(list_A2, list(A2_m))
-    list_B2 <- c(list_B2, list(B2_m))
-    list_qk <- c(list_qk, list(qk_m))
+      list_se <- c(list_se, list(se_m))
+      list_sp <- c(list_sp, list(sp_m))
+      list_prev <- c(list_prev, list(prev_m))
+      list_A2 <- c(list_A2, list(A2_m))
+      list_B2 <- c(list_B2, list(B2_m))
+      list_qk <- c(list_qk, list(qk_m))
 
-    if(iter > 1){
-      if(
-        max(abs(list_se[[iter]] - list_se[[iter - 1]]),
-            abs(list_sp[[iter]] - list_sp[[iter - 1]]),
-            abs(list_prev[[iter]] - list_prev[[iter - 1]])) < tol){
-        break}
+      if(iter > 1){
+        if(
+          max(abs(list_se[[iter]] - list_se[[iter - 1]]),
+              abs(list_sp[[iter]] - list_sp[[iter - 1]]),
+              abs(list_prev[[iter]] - list_prev[[iter - 1]])) < tol){
+          break}
       }
 
-    se_m <- calc_next_se()
-    sp_m <- calc_next_sp()
-    prev_m <- calc_next_prev()
+      se_m <- calc_next_se()
+      sp_m <- calc_next_sp()
+      prev_m <- calc_next_prev()
 
-  }
+    }
 
-  prev_prog <- do.call(rbind, list_prev)
-  se_prog <- do.call(rbind, list_se)
-  sp_prog <- do.call(rbind, list_sp)
-  A2_prog <- do.call(rbind, list_A2)
-  B2_prog <- do.call(rbind, list_B2)
-  qk_prog <- do.call(rbind, list_qk)
+    output <-
+      new("MultiMethodMLEstimate",
+          results = list(
+            prev_est = unlist(prev_m),
+            se_est = unlist(se_m),
+            sp_est = unlist(sp_m),
+            qk_est = unlist(qk_m)),
+          names = list(
+            method_names = method_names,
+            obs_names = obs_names),
+          data = data,
+          freqs = freqs,
+          iter = iter,
+          type = "binary")
 
-  output <-
-    new("MultiMethodMLEstimate",
-        results = list(
-          prev_est = unlist(prev_m),
-          se_est = unlist(se_m),
-          sp_est = unlist(sp_m),
-          qk_est = unlist(qk_m)),
-        names = list(
-          method_names = method_names,
-          obs_names = obs_names),
-        data = data,
-        iter = iter,
-        type = "binary")
+    if(save_progress){
 
-  if(save_progress){
-    output@prog <-
-      list(
-        prev = prev_prog,
-        se = se_prog,
-        sp = sp_prog,
-        A2 = A2_prog,
-        B2 = B2_prog,
-        qk = qk_prog
+      prev_prog <- do.call(rbind, list_prev)
+      se_prog <- do.call(rbind, list_se)
+      sp_prog <- do.call(rbind, list_sp)
+      A2_prog <- do.call(rbind, list_A2)
+      B2_prog <- do.call(rbind, list_B2)
+      qk_prog <- do.call(rbind, list_qk)
+
+      output@prog <-
+        list(
+          prev = prev_prog,
+          se = se_prog,
+          sp = sp_prog,
+          A2 = A2_prog,
+          B2 = B2_prog,
+          qk = qk_prog
         )
+    }
+
+    return(output)
+
   }
 
-  return(output)
 
-}
+
 
 #' @rdname pollinate_ML
 #' @order 2
 #' @export
-#' @importFrom stats setNames runif
+#' @importFrom stats setNames weighted.mean
 
 pollinate_ML_binary <-
   function(
     data,
+    freqs = NULL,
     ...
     ){
 
   method_names <- if(is.null(colnames(data))){name_thing("method", ncol(data))}else{colnames(data)}
 
-  n_obs <- nrow(data)
+  if(is.null(freqs)) freqs <- rep(1, nrow(data))
+
+  n_obs <- sum(freqs)
 
   D_majority <- data |>
-    rowMeans(na.rm = TRUE) |>
-    (\(x) x + stats::runif(n_obs, -0.000001, 0.000001))() |> # randomly break ties
-    round()
-
+    rowMeans(na.rm = TRUE)
   # Estimate initial prevalence wrt majority classification
-  prev_1 <- mean(D_majority, na.rm = TRUE) |> stats::setNames("prev")
+  prev_1 <- weighted.mean(D_majority, freqs, na.rm = TRUE) |> stats::setNames("prev")
 
   # Estimate individual method se wrt majority classification
-  se_1 <- data[D_majority == 1, ] |> colMeans(na.rm = TRUE) |> stats::setNames(method_names)
+  data_tmp <- data
+  data_tmp[is.na(data)] <- 0
+  se_1 <- (D_majority * freqs) %*% data_tmp |> (\(x) x / colSums((D_majority * freqs) %*% !is.na(data), na.rm = TRUE))() |> as.vector() |> stats::setNames(method_names)
 
   # Estimate individual method sp wrt majority classification
-  sp_1 <- 1 - (data[D_majority == 0, ] |> colMeans(na.rm = TRUE) |> stats::setNames(method_names))
+  data_tmp <- data
+  data_tmp[is.na(data)] <- 1
+  sp_1 <- ((1 - D_majority) * freqs) %*% (1 - data_tmp) |> (\(x) x / colSums(((1 - D_majority) * freqs) %*% !is.na(data), na.rm = TRUE))() |> as.vector() |> stats::setNames(method_names)
 
   return(
     list(prev_1 = prev_1,
@@ -428,4 +430,38 @@ bin_auc <-
           ncol = 3, byrow = TRUE
         ) |> det() |> (\(x) x / 2 + 0.5)()
       })
-}
+  }
+
+
+
+#' @title Initialize random starting values
+#' @description
+#' Creates random initial sensitivity and specificity values for `n_method` methods.
+#' Values are generated from a random beta distribution with shape parameters
+#' `a=3` and `b=1`. Prevalence is a random value from a uniform distribution.
+#'
+#' @inheritParams boot_ML
+#' @returns List containing initial values to be passed to `init` argument
+#' @importFrom stats setNames
+
+random_start_binary <-
+  function(n_method = NULL, method_names = NULL){
+
+    se_1 <- rbeta(n_method, 3, 1) |> stats::setNames(method_names)
+    sp_1 <- rbeta(n_method, 3, 1) |> stats::setNames(method_names)
+    prev_1 <- runif(1) |> stats::setNames("prev")
+
+    comp_index <- (se_1 + sp_1) < 1
+
+    se_1[comp_index] <- 1 - se_1[comp_index]
+    sp_1[comp_index] <- 1 - sp_1[comp_index]
+
+    return(
+      list(prev_1 = prev_1,
+           se_1 = se_1,
+           sp_1 = sp_1)
+    )
+
+  }
+# @seealso The [pollinate_ML_binary()] function generates starting values
+# based on the observed data itself.

@@ -4,7 +4,18 @@
 \alias{new_boot_ML}
 \title{Create new boot_ML class object}
 \usage{
-new_boot_ML(v_0, v_star, data, n_boot, n_study, max_iter, tol, n_obs, seed)
+new_boot_ML(
+  v_0,
+  v_star,
+  data,
+  freqs = NULL,
+  n_boot,
+  n_study,
+  max_iter,
+  tol,
+  n_obs,
+  seed
+)
 }
 \arguments{
 \item{v_0}{MultiMethodMLEstimate S4 object}
@@ -15,6 +26,10 @@ new_boot_ML(v_0, v_star, data, n_boot, n_study, max_iter, tol, n_obs, seed)
 observed values for each method. If the dimensions are named, row names will
 be used to name each observation (\code{obs_names}) and column names will be used
 to name each measurement method (\code{method_names}).}
+
+\item{freqs}{A vector of elements \code{n_obs} long representing the number of times
+each row in \code{data} was observed. Used when \code{data} is a summary of unique response
+combinations.}
 
 \item{n_boot}{number of bootstrap estimates to compute}
 

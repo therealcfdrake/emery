@@ -7,8 +7,10 @@
 boot_ML(
   type = c("binary", "ordinal", "continuous"),
   data,
+  freqs = NULL,
   n_boot = 100,
   n_study = NULL,
+  randomize_init = FALSE,
   max_iter = 1000,
   tol = 1e-07,
   seed = NULL,
@@ -23,9 +25,15 @@ observed values for each method. If the dimensions are named, row names will
 be used to name each observation (\code{obs_names}) and column names will be used
 to name each measurement method (\code{method_names}).}
 
+\item{freqs}{A vector of elements \code{n_obs} long representing the number of times
+each row in \code{data} was observed. Used when \code{data} is a summary of unique response
+combinations.}
+
 \item{n_boot}{number of bootstrap estimates to compute}
 
 \item{n_study}{sample size to select for each bootstrap estimate}
+
+\item{randomize_init}{boolean defining whether \code{init} values should be randomize with each bootstrap.}
 
 \item{max_iter}{The maximum number of EM algorithm iterations to compute before
 reporting a result.}

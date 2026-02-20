@@ -101,6 +101,7 @@ generate_multimethod_ordinal <-
 #'
 estimate_ML_ordinal <-
   function(data,
+           freqs = NULL,
            init = list(
              pi_1_1 = NULL,
              phi_1ij_1 = NULL,
