@@ -115,8 +115,8 @@ estimate_ML_ordinal <-
   calc_l_cond_ordinal <- function(){
     l_cond <-
       sum(c(
-        q_k0_t * log(g_0_t),
-        q_k1_t * log(g_1_t)
+        q_k0_t * freqs * log(g_0_t),
+        q_k1_t * freqs * log(g_1_t)
       ), na.rm = TRUE)
     return(l_cond)
   }
@@ -160,13 +160,13 @@ estimate_ML_ordinal <-
     return(q_kd)
   }
   calc_next_prev <- function(q_k1){
-    mean(q_k1)
+    stats::weighted.mean(q_k1, freqs)
   }
   calc_next_phi_dij <- function(q_kd){
-    denom <- as.vector(q_kd %*% !missing_obs) # missing value correction. only observations in which a method had a response are summed
+    denom <- as.vector((q_kd * freqs) %*% !missing_obs) # missing value correction. only observations in which a method had a response are summed
     # sum(q_kd) # original denominator
     quotient <-
-      sweep(y_k, 3, q_kd, `*`) |>
+      sweep(y_k, 3, q_kd * freqs, `*`) |>
       matrix(nrow = n_level * n_method) |>
       rowSums() |>
       matrix(nrow = n_level) |>
@@ -175,6 +175,8 @@ estimate_ML_ordinal <-
     dimnames(quotient) <- list(level_names, method_names)
     return(quotient)
   }
+
+  if(is.null(freqs)) freqs <- rep(1, nrow(data))
 
   t_k <- as.matrix(data)
   n_method <- ncol(t_k)
@@ -246,6 +248,7 @@ estimate_ML_ordinal <-
           obs_names = obs_names,
           level_names = level_names),
         data = t_k,
+        freqs = freqs,
         iter = iter,
         type = "ordinal")
 
@@ -279,6 +282,7 @@ estimate_ML_ordinal <-
 
 pollinate_ML_ordinal <-
   function(data,
+           freqs = NULL,
            n_level = NULL,
            threshold_level = ceiling(n_level / 2),
            level_names = NULL,
@@ -519,7 +523,29 @@ plot_ML_ordinal <-
   }
 
 
+#' @rdname random_start
+#' @order 3
+#' @importFrom stats rbeta setNames
 
+random_start_ordinal <-
+  function(n_method = NULL, method_names = NULL){
+
+    se_1 <- stats::rbeta(n_method, 3, 1) |> stats::setNames(method_names)
+    sp_1 <- stats::rbeta(n_method, 3, 1) |> stats::setNames(method_names)
+    prev_1 <- runif(1) |> stats::setNames("prev")
+
+    comp_index <- (se_1 + sp_1) < 1
+
+    se_1[comp_index] <- 1 - se_1[comp_index]
+    sp_1[comp_index] <- 1 - sp_1[comp_index]
+
+    return(
+      list(prev_1 = prev_1,
+           se_1 = se_1,
+           sp_1 = sp_1)
+    )
+
+  }
 
 
 

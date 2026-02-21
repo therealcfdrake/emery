@@ -26,7 +26,7 @@ setClass(
   prototype = list(
     results = list(),
     data = matrix(),
-    freqs = c(),
+    freqs = NA_integer_,
     names = list(),
     iter = 0,
     prog = list(),
@@ -100,19 +100,91 @@ new_boot_ML <-
     )
   }
 
+#' Return result from MultiMethodMLEstimate object
+#' @description
+#' Returns the result slot from a MultiMethodMLEstimate object
+#' @param x An object of class MultiMethodMLEstimate.
+#' @return Contents of `results` slot of the MultiMethodMLEstimate object.
+#' @export
+#'
+
 setGeneric("getResults", function(x){
   standardGeneric("getResults")
   })
+
+#' Return result from MultiMethodMLEstimate object
+#' @description
+#' Returns the result slot from a MultiMethodMLEstimate object
+#' @param x An object of class MultiMethodMLEstimate.
+#' @return Contents of `results` slot of the MultiMethodMLEstimate object.
+#' @export
+#'
 
 setMethod("getResults", signature("MultiMethodMLEstimate"), function(x){
   x@results
 })
 
+#' Return names from MultiMethodMLEstimate object
+#' @description
+#' Returns the names slot from a MultiMethodMLEstimate object
+#' @param x An object of class MultiMethodMLEstimate.
+#' @return Contents of `names` slot of the MultiMethodMLEstimate object.
+#' @export
+#'
+
 setGeneric("getNames", function(x, name){
   standardGeneric("getNames")
   })
+
+#' Return names from MultiMethodMLEstimate object
+#' @description
+#' Returns the names slot from a MultiMethodMLEstimate object
+#' @param x An object of class MultiMethodMLEstimate.
+#' @return Contents of `names` slot of the MultiMethodMLEstimate object.
+#' @export
+#'
 
 setMethod("getNames", signature("MultiMethodMLEstimate"), function(x, name){
   x@names[name]
 })
 
+#' Set frequencies of MultiMethodMLEstimate objects
+#' @description
+#' Set the freqs slot of a MultiMethodMLEstimate object. This can be used to update
+#' objects created using `emery` versions < 0.6.1 to work with newer versions.
+#' @param x An object of class MultiMethodMLEstimate.
+#' @param freqs A vector of non-negative integers
+#' @return A copy of the MultiMethodMLEstimate object with `freqs` in the appropriate slot.
+#' @export
+#'
+
+setGeneric("setFreqs", function(x, freqs = NULL){
+  standardGeneric("setFreqs")
+  })
+
+#' Set frequencies of MultiMethodMLEstimate objects
+#' @description
+#' Set the freqs slot of a MultiMethodMLEstimate object. This can be used to update
+#' objects created using `emery` versions < 0.6.1 to work with newer versions.
+#' @param x An object of class MultiMethodMLEstimate.
+#' @param freqs A vector of non-negative integers
+#' @return A copy of the MultiMethodMLEstimate object with `freqs` in the appropriate slot.
+#' @export
+#'
+
+setMethod("setFreqs", signature("MultiMethodMLEstimate"), function(x, freqs = NULL){
+
+  if(is.null(freqs)){freqs <- nrow(x@data)}
+
+  return(
+    new("MultiMethodMLEstimate",
+        results = x@results,
+        data = x@data,
+        freqs = freqs,
+        names = x@names,
+        iter = x@iter,
+        prog = x@prog,
+        type = x@type)
+  )
+
+})

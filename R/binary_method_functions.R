@@ -140,7 +140,7 @@ estimate_ML_binary <-
     data <- as.matrix(data)
     dimnames(data) <- list(obs_names, method_names)
     missing_obs <- is.na(data)
-    freqs <- if(is.null(freqs)){rep(1, nrow(data))}else{freqs}
+    if(is.null(freqs)) freqs <- rep(1, nrow(data))
 
     # starting values
     se_m <- init$se_1
@@ -433,8 +433,9 @@ bin_auc <-
   }
 
 
-
 #' @title Initialize random starting values
+#' @rdname random_start
+#' @order 2
 #' @description
 #' Creates random initial sensitivity and specificity values for `n_method` methods.
 #' Values are generated from a random beta distribution with shape parameters
@@ -442,13 +443,13 @@ bin_auc <-
 #'
 #' @inheritParams boot_ML
 #' @returns List containing initial values to be passed to `init` argument
-#' @importFrom stats setNames
+#' @importFrom stats rbeta setNames
 
 random_start_binary <-
   function(n_method = NULL, method_names = NULL){
 
-    se_1 <- rbeta(n_method, 3, 1) |> stats::setNames(method_names)
-    sp_1 <- rbeta(n_method, 3, 1) |> stats::setNames(method_names)
+    se_1 <- stats::rbeta(n_method, 3, 1) |> stats::setNames(method_names)
+    sp_1 <- stats::rbeta(n_method, 3, 1) |> stats::setNames(method_names)
     prev_1 <- runif(1) |> stats::setNames("prev")
 
     comp_index <- (se_1 + sp_1) < 1

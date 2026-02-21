@@ -166,8 +166,8 @@ pollinate_ML <-
 
     switch (type,
             binary = pollinate_ML_binary(data, freqs = freqs, ...),
-            ordinal = pollinate_ML_ordinal(data, ...),
-            continuous = pollinate_ML_continuous(data, ...)
+            ordinal = pollinate_ML_ordinal(data, freqs = freqs, ...),
+            continuous = pollinate_ML_continuous(data, freqs = freqs, ...)
     )
   }
 
@@ -398,4 +398,24 @@ plot.boot_ML <-
      })
 
    }
+
+#' @title Generate a random initial starting point for EM algorithm
+#' @description
+#' `random_start()` is a general function for creating a random, plausible starting point
+#' for the EM algorithm to begin iterating from. Varying the starting points of repeated
+#' calculations can help the researcher detect local extremes.
+#' @inheritParams generate_multimethod_data
+#' @order 1
+
+random_start <-
+  function(type, n_method, method_names){
+
+    switch (type,
+            binary = random_start_binary(n_method, method_names),
+            ordinal = warning("Random start values not supported for ordinal data at this time"), #random_start_ordinal(n_method, method_names),
+            continuous = warning("Random start values not supported for continuous data at this time") #random_start_continuous(n_method, method_names)
+    )
+
+  }
+
 

@@ -154,7 +154,8 @@ estimate_ML_continuous <-
 
   t_k <- as.matrix(data)
   n_method <- ncol(t_k)
-  n_obs <- nrow(t_k)
+  if(is.null(freqs)) freqs <- rep(1, nrow(data))
+  n_obs <- sum(freqs)
   method_names <- if(is.null(colnames(t_k))){name_thing("method", n_method)}else{colnames(t_k)}
   obs_names <- if(is.null(rownames(t_k))){name_thing("obs", n_obs)}else{rownames(t_k)}
 
@@ -234,6 +235,7 @@ estimate_ML_continuous <-
           method_names = method_names,
           obs_names = obs_names),
         data = t_k,
+        freqs = freqs,
         iter = iter,
         type = "continuous")
 
@@ -268,6 +270,7 @@ estimate_ML_continuous <-
 
 pollinate_ML_continuous <-
   function(data,
+           freqs = NULL,
            prev = 0.5,
            q_seeds = c((1 - prev) / 2, 1 - (prev / 2)),
            high_pos = TRUE,

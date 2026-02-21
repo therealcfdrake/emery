@@ -20,6 +20,7 @@ pollinate_ML_binary(data, freqs = NULL, ...)
 
 pollinate_ML_ordinal(
   data,
+  freqs = NULL,
   n_level = NULL,
   threshold_level = ceiling(n_level/2),
   level_names = NULL,
@@ -28,6 +29,7 @@ pollinate_ML_ordinal(
 
 pollinate_ML_continuous(
   data,
+  freqs = NULL,
   prev = 0.5,
   q_seeds = c((1 - prev)/2, 1 - (prev/2)),
   high_pos = TRUE,
