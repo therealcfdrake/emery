@@ -128,6 +128,7 @@ setMethod("getResults", signature("MultiMethodMLEstimate"), function(x){
 #' @description
 #' Returns the names slot from a MultiMethodMLEstimate object
 #' @param x An object of class MultiMethodMLEstimate.
+#' @param name type of names to extract, e.g. "method_names", "obs_names", "level_names"
 #' @return Contents of `names` slot of the MultiMethodMLEstimate object.
 #' @export
 #'
@@ -140,6 +141,7 @@ setGeneric("getNames", function(x, name){
 #' @description
 #' Returns the names slot from a MultiMethodMLEstimate object
 #' @param x An object of class MultiMethodMLEstimate.
+#' @param name type of names to extract, e.g. "method_names", "obs_names", "level_names"
 #' @return Contents of `names` slot of the MultiMethodMLEstimate object.
 #' @export
 #'

@@ -387,7 +387,7 @@ plot_ML_binary <-
       data.frame(qk_est = ML_est@results$qk_est, freqs = ML_est@freqs) |>
       dplyr::mutate(true_D = dis_data$true_D) |>
       ggplot2::ggplot(ggplot2::aes(x = qk_est, fill = true_D)) +
-      ggplot2::geom_histogram(bins = 40, boundary = -0.025, aes(y = ggplot2::after_stat(density), weight = freqs)) +
+      ggplot2::geom_histogram(bins = 40, boundary = -0.025, ggplot2::aes(y = ggplot2::after_stat(!!str2lang("density")), weight = !!str2lang("freqs"))) +
       ggplot2::scale_y_continuous("Observations", limits = c(0, NA), expand = c(0, 0.5)) +
       ggplot2::scale_x_continuous(breaks = seq(0, 1, 0.05), expand = c(0, 0)) +
       ggplot2::scale_fill_brewer("", palette = "Dark2", na.value = "gray30", drop = FALSE) +

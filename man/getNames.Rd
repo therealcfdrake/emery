@@ -8,6 +8,8 @@ getNames(x, name)
 }
 \arguments{
 \item{x}{An object of class MultiMethodMLEstimate.}
+
+\item{name}{type of names to extract, e.g. "method_names", "obs_names", "level_names"}
 }
 \value{
 Contents of \code{names} slot of the MultiMethodMLEstimate object.
