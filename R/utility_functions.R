@@ -85,12 +85,12 @@ unique_obs_summary <- function(data){
   duplicate_obs <- lapply(1:nrow(unique_obs),
                           function(r){rownames(data[sapply(1:nrow(data), function(s){
                             identical(data[s, ], unique_obs[r, ])}), , drop = FALSE])})
-  obs_freq <- vapply(duplicate_obs, length, 1)
+  obs_freqs <- vapply(duplicate_obs, length, 1)
 
   list(
     unique_obs = unique_obs,
     duplicate_obs = duplicate_obs,
-    obs_freq = obs_freq
+    obs_freqs = obs_freqs
   )
 
 }

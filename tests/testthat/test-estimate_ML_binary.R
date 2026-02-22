@@ -11,7 +11,7 @@ testthat::test_that(
 
     unique_binary <- unique_obs_summary(binary_test_data$generated_data)
 
-    new_version_fast <- estimate_ML_binary(unique_binary$unique_obs, freqs = unique_binary$obs_freq, tol = 1e-7, max_iter = 1000, init = list(prev_1 = 0.2, se_1 = rep(.75, 4), sp_1 = rep(0.75, 4)))
+    new_version_fast <- estimate_ML_binary(unique_binary$unique_obs, freqs = unique_binary$obs_freqs, tol = 1e-7, max_iter = 1000, init = list(prev_1 = 0.2, se_1 = rep(.75, 4), sp_1 = rep(0.75, 4)))
 
     testthat::expect_equal(
       getResults(new_version),

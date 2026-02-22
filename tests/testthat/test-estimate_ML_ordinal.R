@@ -11,7 +11,7 @@ testthat::test_that(
     new_version <- estimate_ML_ordinal(ordinal_test_data, tol = 1e-7, max_iter = 1000, init = init_ordinal)
 
     unique_ordinal <- unique_obs_summary(ordinal_test_data)
-    new_version_fast <- estimate_ML_ordinal(unique_ordinal$unique_obs, unique_ordinal$obs_freq, tol = 1e-7, max_iter = 1000, init = init_ordinal)
+    new_version_fast <- estimate_ML_ordinal(unique_ordinal$unique_obs, unique_ordinal$obs_freqs, tol = 1e-7, max_iter = 1000, init = init_ordinal)
 
     testthat::expect_equal(
       getResults(new_version),

@@ -1,14 +1,17 @@
 
-## emery (Version 0.6.5)
+## emery (Version 0.6.2)
 
 ### Major changes
 
-- New functions: random_start(), unique_obs_summary()
-- New getter functions for MultiMethodMLEstimate objects: getNames(), getResults()
-- estimate_ML_binary() now (optionally) accepts a summary of unique observations and their 
-frequencies which can result in significantly increased calculation speeds
+- New functions: random_start_binary(), unique_obs_summary()
+- New accessor functions for MultiMethodMLEstimate objects: getNames(), getResults(), setFreqs()
+- estimate_ML_binary() and estimate_ML_ordinal() now (optionally) accept a summary of unique observations and their 
+frequencies which can result in significantly increased calculation speeds, especially when bootstrapping large data sets
+- New slot added to MultiMethodMLEstimate S4 objects to support above
 
+### Minor changes
 
+- Automated testing added for some functions
 
 ## emery (Version 0.6.0)
 
