@@ -191,7 +191,7 @@ estimate_ML_ordinal <-
   if(is.null(level_names)){level_names <- name_thing("level", n_level)}
   if(!all(c("pi_1_1", "phi_1ij_1", "phi_0ij_1", "n_level") %in% names(init)) |
      any(sapply(init, is.null))
-     ){init <- pollinate_ML(type = "ordinal", data = t_k, n_level = n_level, level_names = level_names)}
+     ){init <- pollinate_ML(type = "ordinal", data = t_k, freqs = freqs, n_level = n_level, level_names = level_names)}
 
   p_t <- init$pi_1_1
   phi_1ij_t <- init$phi_1ij_1
@@ -278,7 +278,7 @@ estimate_ML_ordinal <-
 #' indicates the initial threshold used to define positive and negative disease states.
 #' @param level_names Used for ordinal methods. Optional vector of length `n_level`
 #' containing names for each level.
-#' @importFrom stats runif
+#' @importFrom stats runif weighted.mean
 
 pollinate_ML_ordinal <-
   function(data,
@@ -292,7 +292,7 @@ pollinate_ML_ordinal <-
     n_method <- ncol(t_k)
     n_obs <- nrow(t_k)
 
-    if(is.null(n_level)){n_level <- length(unique(as.vector(t_k)))}
+    if(is.null(n_level)){n_level <- sum(!is.na(unique(as.vector(t_k))))}
 
     method_names <- if(is.null(colnames(t_k))){name_thing("method", ncol(t_k))}else{colnames(t_k)}
     obs_names <- if(is.null(rownames(t_k))){name_thing("obs", nrow(t_k))}else{rownames(t_k)}
@@ -306,19 +306,19 @@ pollinate_ML_ordinal <-
         (\(x) x >= threshold_level)()
     )
 
-    pi_1_1 <- mean(D_majority)
+    pi_1_1 <- stats::weighted.mean(D_majority, w = freqs)
     t_k1 <- t_k[D_majority == 1, ]
     t_k0 <- t_k[D_majority == 0, ]
 
     phi_1ij_1 <-
-      lapply(1:n_level, function(j) colMeans(t_k1 == j, na.rm = TRUE)) |>
+      lapply(1:n_level, function(j) colSums((t_k1 == j) * freqs[D_majority == 1], na.rm = TRUE) / sum(freqs[D_majority == 1], na.rm = TRUE)) |>
       unlist() |>
       pmax(1e-10) |>
       pmin((1 - 1e-10)) |>
       matrix(nrow = n_level, ncol = n_method, byrow = TRUE, dimnames = list(level_names, method_names))
 
     phi_0ij_1 <-
-      lapply(1:n_level, function(j) colMeans(t_k0 == j, na.rm = TRUE)) |>
+      lapply(1:n_level, function(j) colSums((t_k0 == j) * freqs[D_majority == 0], na.rm = TRUE) / sum(freqs[D_majority == 0], na.rm = TRUE)) |>
       unlist() |>
       pmax(1e-10) |>
       pmin((1 - 1e-10)) |>

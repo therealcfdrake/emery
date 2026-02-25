@@ -1,5 +1,11 @@
+## emery (Version 0.7.1)
 
-## emery (Version 0.6.2)
+### Minor changes
+
+- patched bugs in estimate_ML_binary() and estimate_ML_ordinal() where `freqs` argument was not being passed to pollinate_ML()
+- patched bug in pollinate_ML_ordinal()
+
+## emery (Version 0.7.0)
 
 ### Major changes
 

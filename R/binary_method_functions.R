@@ -132,7 +132,7 @@ estimate_ML_binary <-
       stats::weighted.mean(qk_m, freqs)
     }
 
-    if(!all(c("prev_1", "se_1", "sp_1") %in% names(init)) | any(sapply(init, is.null))){init <- pollinate_ML(type = "binary", data = data)}
+    if(!all(c("prev_1", "se_1", "sp_1") %in% names(init)) | any(sapply(init, is.null))){init <- pollinate_ML(type = "binary", data = data, freqs = freqs)}
 
     method_names <- if(is.null(colnames(data))){name_thing("method", ncol(data))}else{colnames(data)}
     obs_names <- if(is.null(rownames(data))){name_thing("obs", nrow(data))}else{rownames(data)}
