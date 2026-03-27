@@ -147,8 +147,8 @@ estimate_ML_binary <-
     if(is.null(freqs)) freqs <- rep(1, nrow(data))
 
     # starting values
-    se_m <- init$se_1
-    sp_m <- init$sp_1
+    se_m <- init$se_1 |> pmin(1 - 1e-13) |> pmax(1e-13)
+    sp_m <- init$sp_1 |> pmin(1 - 1e-13) |> pmax(1e-13)
     prev_m <- init$prev_1
 
     # initialize lists
