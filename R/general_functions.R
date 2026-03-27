@@ -272,7 +272,7 @@ boot_ML <-
 
     type <- match.arg(type)
 
-    v_0 <- estimate_ML(type = type, data = data, freqs = freqs, max_iter = 1000, tol = 1e-7, save_progress = FALSE) ####
+    v_0 <- estimate_ML(type = type, data = data, freqs = freqs, max_iter = max_iter, tol = tol, save_progress = FALSE) ####
 
     n_obs <- nrow(data)
     n_method <- ncol(data)
@@ -287,9 +287,9 @@ boot_ML <-
         tmp <- factor(sample(n_obs, n_study, replace = TRUE, prob = freqs), levels = 1:n_obs) |> table() |> as.vector()
         if(randomize_init){
           init <- random_start(type = type, n_method = n_method, method_names = getNames(v_0, "method_names"))
-        }else{init <- pollinate_ML(type = type, data = data, freqs = freqs)}
+        }else{init <- pollinate_ML(type = type, data = data, freqs = tmp)}
         utils::setTxtProgressBar(pb, b)
-        getResults(estimate_ML(type = type, data = data, freqs = tmp, max_iter = 1000, tol = 1e-7, save_progress = FALSE, ...))
+        getResults(estimate_ML(type = type, data = data, freqs = tmp, max_iter = max_iter, tol = tol, save_progress = FALSE, ...))
       })
 
     close(pb)

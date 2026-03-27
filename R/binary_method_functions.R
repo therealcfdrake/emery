@@ -119,13 +119,17 @@ estimate_ML_binary <-
     calc_next_se <- function(){
       dat_mat <- data
       dat_mat[missing_obs] <- 0 # added to handle NA, used to calc appropriate denominators
-      ((qk_m * freqs) %*% dat_mat) / ((qk_m * freqs) %*% !missing_obs)
+      (((qk_m * freqs) %*% dat_mat) / ((qk_m * freqs) %*% !missing_obs)) |>
+        pmin(1 - 1e-13) |>
+        pmax(1e-13)
       # (qk_m %*% as.matrix(data)) / sum(qk_m) # original function before changes to accept NA
     }
     calc_next_sp <- function(){
       dat_mat <- 1 - data
       dat_mat[missing_obs] <- 0 # added to handle NA, used to calc appropriate denominators
-      (((1 - qk_m) * freqs) %*% dat_mat) / (((1 - qk_m) * freqs) %*% !missing_obs)
+      ((((1 - qk_m) * freqs) %*% dat_mat) / (((1 - qk_m) * freqs) %*% !missing_obs)) |>
+        pmin(1 - 1e-13) |>
+        pmax(1e-13)
       # ((1 - qk_m) %*% (1 - as.matrix(data))) / sum(1 - qk_m) # original function before changes to accept NA
     }
     calc_next_prev <- function(){
